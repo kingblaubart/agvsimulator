@@ -7,7 +7,7 @@ from Event import Event
 import Lib as lib
 from scipy import signal
 import control
-
+from RoutePlanner import RoutePlanner
 
 class God:
 
@@ -23,6 +23,7 @@ class God:
     def __init__(self, parameters):
         self.parameters = parameters
         self.cars = []  # list of each car in simulation
+        self.real_cars = [] # list of cars in simulation, does not contain the ghosts
         self.last_timestamp = 0  # stores the last timestamp - to stop the simulation after it
         self.size = parameters["God"]["size"]  # size of the canvas in m
         # self.size = [0, 0]         # stores highest x and y values for matching the simulation area
@@ -48,7 +49,6 @@ class God:
         lib.set_pt(parameters["God"]["pt"])
         self.eventlist_debug = []
         self.make_statespace()
-
 
     def file_read(self):
         ############################
@@ -117,19 +117,32 @@ class God:
         #############################
         ## INITIALIZE OBSTACLES #####
         #############################
-        obstacles_origin = self.parameters["Obstacles"]
+        if self.parameters["God"]["Layout"]:
+            obs_x = self.parameters["Layout"]["Obstacles_in_x_direction"]
+            obs_y = self.parameters["Layout"]["Obstacles_in_y_direction"]
+            route_planner = RoutePlanner(self)
+            route_planner.make_layout(self.size[0], self.size[1], obs_x, obs_y)
 
-        for obst in obstacles_origin:
-            spawn_x = float(obst["corners"][0])
-            spawn_y = float(obst["corners"][1])
-            if spawn_x < 0 or spawn_x > self.size[0] or spawn_y < 0 or spawn_y > self.size[1]:
-                raise Exception('An obstacle cannot be defined outside the canvas boundary.')
-            # THIS CODE NEEDS TO BE UPDATED IN ORDER TO SUPPORT POLYGONS!
-            edges = obst["corners"]
-            color = obst["color"]
+            for car in self.cars:
+                print(car.waypoints)
+                points = route_planner.make_route(car.path.points)
+                car.waypoints = points
+                car.path.points = points
 
-            obstacle = Obstacles2D(spawn_x, spawn_y, edges, color)
-            self.obstacles.append(obstacle)
+                print(car.waypoints)
+        else:
+            obstacles_origin = self.parameters["Obstacles"]
+
+            for obst in obstacles_origin:
+                spawn_x = float(obst["corners"][0])
+                spawn_y = float(obst["corners"][1])
+                if spawn_x < 0 or spawn_x > self.size[0] or spawn_y < 0 or spawn_y > self.size[1]:
+                    raise Exception('An obstacle cannot be defined outside the canvas boundary.')
+                edges = obst["corners"]
+                color = obst["color"]
+
+                obstacle = Obstacles2D(spawn_x, spawn_y, edges, color)
+                self.obstacles.append(obstacle)
 
         # Adding outer boundary as obstacles
         # Bottom
@@ -146,36 +159,38 @@ class God:
 
         lib.set_collision(CollisionControl(self))
         lib.set_carcount(len(self.cars))
+        self.real_cars = self.cars[:]
 
         # Make DC-motor
     def make_statespace(self):
-        Jm = self.parameters["DC-Motor"]["Jm"]
-        Bm = self.parameters["DC-Motor"]["Bm"]
-        Kme = self.parameters["DC-Motor"]["Kme"]
-        Kmt = self.parameters["DC-Motor"]["Kmt"]
-        Rm = self.parameters["DC-Motor"]["Rm"]
-        Lm = self.parameters["DC-Motor"]["Lm"]
+        jm = self.parameters["DC-Motor"]["Jm"]
+        bm = self.parameters["DC-Motor"]["Bm"]
+        kme = self.parameters["DC-Motor"]["Kme"]
+        kmt = self.parameters["DC-Motor"]["Kmt"]
+        rm = self.parameters["DC-Motor"]["Rm"]
+        lm = self.parameters["DC-Motor"]["Lm"]
 
-        Kdm = self.parameters["DC-Motor"]["Kdm"]
-        Kpm = self.parameters["DC-Motor"]["Kpm"]
-        Kim = self.parameters["DC-Motor"]["Kim"]
-        Nm = self.parameters["DC-Motor"]["Nm"]
+        kdm = self.parameters["DC-Motor"]["Kdm"]
+        kpm = self.parameters["DC-Motor"]["Kpm"]
+        kim = self.parameters["DC-Motor"]["Kim"]
+        nm = self.parameters["DC-Motor"]["Nm"]
 
-        Ts = 0.005
-        DC = control.TransferFunction([0, Kmt], [Jm * Lm, Bm * Lm + Jm * Rm, Bm * Rm + Kme * Kmt])
-        PIDm = control.TransferFunction([Kpm + Kdm * Nm, Kpm * Nm + Kim, Kim * Nm], [1, Nm, 0])
+        ts = lib.ct
 
-        II = control.TransferFunction([1], [1, 0, 0])
+        dc = control.TransferFunction([0, kmt], [jm * lm, bm * lm + jm * rm, bm * rm + kme * kmt])
+        pidm = control.TransferFunction([kpm + kdm * nm, kpm * nm + kim, kim * nm], [1, nm, 0])
 
-        AGV = II * control.feedback(DC*PIDm, sign=-1)
+        ii = control.TransferFunction([1], [1, 0, 0])
 
-        #AGV = II * (PIDm * DC) / (1 + PIDm * DC)
+        agv = ii * control.feedback(dc*pidm, sign=-1)
 
-        AGVz = control.sample_system(AGV, Ts, method='zoh')
+        #agv = II * (PIDm * DC) / (1 + PIDm * DC)
 
-        SS = control.tf2ss(AGVz)
+        agvz = control.sample_system(agv, ts, method='zoh')
 
-        lib.set_statespace(SS)
+        ss = control.tf2ss(agvz)
+
+        lib.set_statespace(ss)
 
     # OLD - not used anymore
     def simulate_backup(self):

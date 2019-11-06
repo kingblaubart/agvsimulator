@@ -78,6 +78,7 @@ class EventQueue:
     # creates the paths of the cars
     def create_spline(self, car):
         car = self.god.cars[car.id]
+        print(car.id)
         car.create_spline()
         # if the latency differs from 0 a copy of the car is created which has no
         # latency and is displayed transparently
@@ -87,8 +88,8 @@ class EventQueue:
             car_copy.ghost = True
             car_copy.id = str(car_copy.id) + ' Ghost'
 
-            # command to generate event queue entries
-            car_copy.make_controls()
+            # command to generate event queue entries, not needed anymore?
+            # car_copy.make_controls()
 
             self.god.cars.append(car_copy)
             lib.carList.append(car_copy)

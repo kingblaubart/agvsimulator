@@ -5,8 +5,6 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import Lib as lib
-from Obstacles2D import Obstacles2D
-import pyglet
 
 
 def start_simulation():
@@ -83,30 +81,30 @@ def start_simulation():
     path_x = []
     path_y = []
 
-    car = g.cars[0]
-
-    for data in car.planner.acceleration_from_v_equi_in_t:
-        x, y = car.test_dc_motor(data.real, data.imag)
-        path_x.append(x+car.spawn[0])
-        path_y.append(y+car.spawn[1])
-
-    plt.plot(path_x, path_y, label='DC')
-
-
-    px = []
-    py = []
-    i = 0
-    for p_x, p_y in zip(path_x, path_y):
-        if i == 30:
-            px.append(p_x)
-            py.append(p_y)
-            i = 0
-        i += 1
-
-    #plt.plot(px, py, 'x', label='DC')
-    plt.title('Path')
-    plt.legend()
-    plt.show()
+    # car = g.cars[0]
+    #
+    # for data in car.planner.acceleration_from_v_equi_in_t:
+    #     x, y = car.test_dc_motor(data.real, data.imag)
+    #     path_x.append(x+car.spawn[0])
+    #     path_y.append(y+car.spawn[1])
+    #
+    # plt.plot(path_x, path_y, label='DC')
+    #
+    #
+    # px = []
+    # py = []
+    # i = 0
+    # for p_x, p_y in zip(path_x, path_y):
+    #     if i == 30:
+    #         px.append(p_x)
+    #         py.append(p_y)
+    #         i = 0
+    #     i += 1
+    #
+    # #plt.plot(px, py, 'x', label='DC')
+    # plt.title('Path')
+    # plt.legend()
+    # plt.show()
     s.create_space()
 
 

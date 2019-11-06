@@ -42,12 +42,13 @@ class CarFree2D:
         self.shape = []                             # shape of the planned path (without exact timestamp)
         self.path = Path(self.spawn)                # "shape" with exact timestamp
         self.waypoints = []                         # list for the given points with the
-        self.ts = ts/1000                           # sampling time of AGV^(-1)
+        self.ts = ts                                # sampling time of AGV^(-1)
         self.t_to_length = []                       # t is parameter of bezier-curve, t_to_length is correlation of t and length of shape
         self.planner = None
         # CONTROLS
-        self.time_last_control = 0                  # timestamp of last control input
-        self.time_last_update = 0                   # timestamp of last given acceleration
+        self.time_last_control = -1                  # timestamp of last control input
+        self.time_last_update = -1                   # timestamp of last given acceleration
+        self.time_last_step = -1
         self.stop = False                           # False: car drives, True: car stops (or will stop within the next time (t < ts)
         self.stop_time = 0                          # timestamp of stop (velocitiy 0 reached)
         self.control_prep = []
@@ -95,10 +96,10 @@ class CarFree2D:
         pass
 
     def test_dc_motor(self, ax, ay):
+        self.acceleration_x = ax
+        self.acceleration_y = ay
         self.counter += 1
         # x direction:
-        test = lib.statespace.B.A.dot(ax)
-        test2 = lib.statespace.A.A.dot(self.old_state[0])
         self.state[0] = lib.statespace.A.A.dot(self.old_state[0]) + lib.statespace.B.A.dot(ax)
         x = lib.statespace.C.A.dot(self.old_state[0]) + lib.statespace.D.A.dot(ax)
         # y direction:
@@ -108,12 +109,59 @@ class CarFree2D:
         self.old_state = self.state
         return x[0][0], y[0][0]
 
+    def steer(self, t, ax, ay, stop):
+        t = round(t, 5)
+
+        self.acceleration_x = ax
+        self.acceleration_y = ay
+
+        if round(t - self.time_last_step, 5) >= lib.pt:
+            for i in range(int(lib.pt/lib.ct)):
+                # x direction
+                self.state[0] = lib.statespace.A.A.dot(self.old_state[0]) + lib.statespace.B.A.dot(ax)
+                x = lib.statespace.C.A.dot(self.old_state[0]) + lib.statespace.D.A.dot(ax)
+                x = x[0][0]
+                # y direction:
+                self.state[1] = lib.statespace.A.A.dot(self.old_state[1]) + lib.statespace.B.A.dot(ay)
+                y = lib.statespace.C.A.dot(self.old_state[1]) + lib.statespace.D.A.dot(ay)
+                y = y[0][0]
+                self.position_x.append(self.spawn[0] + x)
+                self.position_y.append(self.spawn[1] + y)
+                self.last_position = [self.spawn[0] + x, self.spawn[1] + y]
+
+        self.old_state = self.state
+
+        if stop:
+            self.stop_time = t
+        else:
+            comp_vel = complex(self.last_velocity_x, self.last_velocity_y)
+            self.direction = np.angle([comp_vel])[0]
+        self.stop = stop
+
+        self.direction = np.angle([complex(self.state[0][0], self.state[1][0])])[0]
+
+        self.time_last_step = t
+
+    def new_control(self, t, ax, ay, stop):
+        self.acceleration_x += ax
+        self.acceleration_y += ay
+        self.state[0] = lib.statespace.A.A.dot(self.old_state[0]) + lib.statespace.B.A.dot(self.acceleration_x)
+        x = lib.statespace.C.A.dot(self.old_state[0]) + lib.statespace.D.A.dot(self.acceleration_x)
+        x = x[0][0]
+        # y direction:
+        self.state[1] = lib.statespace.A.A.dot(self.old_state[1]) + lib.statespace.B.A.dot(self.acceleration_y)
+        y = lib.statespace.C.A.dot(self.old_state[1]) + lib.statespace.D.A.dot(self.acceleration_y)
+        y = y[0][0]
+        self.position_x.append(self.spawn[0] + x)
+        self.position_y.append(self.spawn[1] + y)
+        self.last_position = [self.spawn[0] + x, self.spawn[1] + y]
+        self.time_last_step = t
+
     # used with EventQueue
     # car gets controlled with specific values by an Event (car_control)
-    def steer(self, t, acc_x, acc_y, stop):
+    def old_steer(self, t, acc_x, acc_y, stop):
 
         dt = t - self.time_last_control
-        #dt = self.ts
 
         x = (0.5*(dt**2) * self.acceleration_x) + self.last_velocity_x * dt + self.last_position[0]
         y = (0.5*(dt**2) * self.acceleration_y) + self.last_velocity_y * dt + self.last_position[1]

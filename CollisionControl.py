@@ -22,6 +22,7 @@ class CollisionControl:
         self.last_angle = []
         self.collision_free = True
         self.hardcollision_free = True
+        self.cars = god.real_cars
         self.make_poly()
 
     def make_car_poly_old(self, car: CarFree2D, t):
@@ -105,7 +106,7 @@ class CollisionControl:
         return Concave_Poly(pos, points)
 
     def make_poly(self):
-        for car in self.god.cars:
+        for car in self.cars:
             self.coll_cars.append(car)
             self.last_position.append(0)
         for obst in self.god.obstacles:
@@ -118,7 +119,7 @@ class CollisionControl:
         self.collision_free = True
         self.hardcollision_free = True
         self.list = lib.data[:]
-        calc = len(self.list) / len(self.god.cars)
+        calc = len(self.list) / len(self.cars)
         for i in range(int(calc)):
             cars_temp = self.coll_cars[:]
             for car_col in self.coll_cars:
@@ -152,7 +153,7 @@ class CollisionControl:
                             else:
                                 print("Car", car_col.id, "Soft Collision with car", car.id, "@",
                                       round(self.list[0][0], 3))
-            for j in range(len(self.god.cars)):
+            for j in range(len(self.cars)):
                 del self.list[0]
         if self.collision_free:
             print("No collision occurred")
