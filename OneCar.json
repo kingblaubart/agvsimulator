@@ -9,9 +9,11 @@
       "pt": 0.005,
       "pt_comment": "PathPlanner sampling rate",
       "latency": 0.02,
+      "errorrate": 0.05,
       "k_p": -0.5,
       "k_d": -0.2,
-      "Layout": true
+      "Layout": true,
+      "Path": false
     },
   "SpaceFree2D":
     {
@@ -42,12 +44,16 @@
         "index": 0,
         "spawn_x": 1.4,
         "spawn_y": 5.5,
-        "angle": 0.787,
+        "start_direction": "west",
+        "end_direction": "east",
+        "angle": 3.142,
         "length": 1,
         "width": 0.5,
         "max_vel": 4,
         "max_acc": 2,
-        "color": "#FFAF00"
+        "color": "#FFAF00",
+        "start": [0, 0],
+        "finish": [4, 3]
       }
     ],
   "Path":
@@ -88,16 +94,9 @@
         "color": "red"
       }
     ],
-  "Channel":
-  {
-    "latency": 20,
-    "min_latency": 15,
-    "max_latency": 55,
-    "error_probability": 0.5
-  },
   "CollisionControl":
   {
-    "activated": true,
+    "activated": false,
     "obstacle_spacing": 0.1,
     "car_spacing": 0.5,
     "polling_dif": 0.001,

@@ -12,7 +12,6 @@ class Controller:
         self.stop_time = 0
         self.last_x_delta = 0
         self.last_y_delta = 0
-        self.debug = []
 
     def control(self, t):
         for data in lib.data[::-1]:
@@ -57,11 +56,8 @@ class Controller:
             self.last_x_delta = x_delta
             self.last_y_delta = y_delta
 
-            #self.debug.append([x_delta, y_delta])
-
         else:
             ax, ay = 0, 0
-        self.debug.append([ax,ay])
         return ax, ay
 
     def set_path(self, path):

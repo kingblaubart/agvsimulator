@@ -11,19 +11,23 @@ import Lib as lib
 
 
 class CarFree2D:
-    def __init__(self, id: int, spawn_x, spawn_y, size_x, size_y, angle, max_vel, max_acc, color, ts):
+    def __init__(self, id: int, spawn_x, spawn_y, start_dir, end_dir, size_x, size_y, angle, max_vel, max_acc, color,
+                 ts):
         self.ghost = False
         # PHYSICAL PROPERTIES
         self.color = color                          # color code
         self.id = id                                # unique car id
         self.spawn = [spawn_x, spawn_y]             # spawnpoint
-        self.position_x = []                          # not used for EventQueue
-        self.position_y = []
+        self.destination = 0
+        self.position_x = [spawn_x]                          # not used for EventQueue
+        self.position_y = [spawn_y]
         self.direction = angle                      # direction of the car
         self.start_direction = angle                # start-direction of the car
         self.last_position = [spawn_x, spawn_y]     # position after last control input
         self.length = size_x                        # in m
         self.width = size_y                         # in m
+        self.start_dir = start_dir
+        self.end_dir = end_dir
         # VELOCITY
         self.last_velocity = 0
         self.last_velocity_x = 0                      # velocity after last control input
@@ -61,6 +65,7 @@ class CarFree2D:
         self.old_state = [np.zeros(dim).reshape(-1, 1), np.zeros(dim).reshape(-1, 1)]
         self.state = [np.zeros(dim), np.zeros(dim)]
         self.counter = 0
+        self.min_dist = self.make_min_dist()
 
     # GETTER
     # currenttly not used
@@ -80,6 +85,18 @@ class CarFree2D:
         self.path.add(p)
         self.waypoints.append(p)
         # raise Exception('The point (' + str(p.x) + '|' + str(p.y) + ') is too far away. Skipped.')
+
+    def make_min_dist(self):
+        edges = [[self.spawn[0] - self.length / 2, self.spawn[1] - self.width / 2],
+                 [self.spawn[0] + self.length / 2, self.spawn[1] - self.width / 2],
+                 [self.spawn[0] + self.length / 2, self.spawn[1] + self.width / 2],
+                 [self.spawn[0] - self.length / 2, self.spawn[1] + self.width / 2]]
+        out = lib.dist(self.spawn, edges[0])
+        for e in edges:
+            dist = lib.dist(self.spawn, e)
+            if dist > out:
+                out = dist
+        return out
 
     # creates spline for the given waypoints (from the *.json file)
     def create_spline(self):
@@ -114,7 +131,7 @@ class CarFree2D:
 
         self.acceleration_x = ax
         self.acceleration_y = ay
-
+        lp = self.last_position[:]
         if round(t - self.time_last_step, 5) >= lib.pt:
             for i in range(int(lib.pt/lib.ct)):
                 # x direction
@@ -138,7 +155,7 @@ class CarFree2D:
             self.direction = np.angle([comp_vel])[0]
         self.stop = stop
 
-        self.direction = np.angle([complex(self.state[0][0], self.state[1][0])])[0]
+        self.direction = lib.angle(Point(self.position_x[-2], self.position_y[-2]), Point(self.position_x[-1], self.position_y[-1]))
 
         self.time_last_step = t
 
@@ -256,8 +273,8 @@ class CarFree2D:
             x = 0.5 * (dt ** 2) * m.cos(self.direction) * self.acceleration + self.last_velocity_x * dt + self.last_position[0]
             y = 0.5 * (dt ** 2) * m.sin(self.direction) * self.acceleration + self.last_velocity_y * dt + self.last_position[1]
 
-            # x = self.last_position[0]
-            # y = self.last_position[1]
+            x = self.last_position[0]
+            y = self.last_position[1]
 
             dir = round(self.direction, 5)
 

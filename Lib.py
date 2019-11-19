@@ -10,6 +10,7 @@ ct = None
 pt = None
 fps = None
 latency = None
+errorrate = None
 carList = []
 data = []
 vis_data = []
@@ -63,6 +64,10 @@ def set_latency(l):
     latency = l
 
 
+def set_errorate(e):
+    global errorrate
+    errorrate = e
+
 def set_carcount(c):
     global car_count
     car_count = c
@@ -94,3 +99,9 @@ def distance(p1: Point, p2: Point):
     y = p2.y - p1.y
     d = np.linalg.norm([x, y])
     return d
+
+
+def dist(a, b):
+    a = np.array(a)
+    b = np.array(b)
+    return np.linalg.norm(a-b)

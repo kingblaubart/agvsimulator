@@ -4,6 +4,7 @@ import Lib as lib
 import numpy as np
 from math import atan, cos, sin, tan
 import copy
+import random
 
 
 class EventQueue:
@@ -20,6 +21,15 @@ class EventQueue:
         self.add_event(Event(0, None, (0,), lambda: lib.eventqueue.check_for_collision))
         self.add_event(Event(0, None, (0,), lambda: lib.eventqueue.get_data))
         self.add_event(Event(0, None, (0,), lambda: lib.eventqueue.get_vis_data))
+        self.successes = []
+        self.errors = []
+        try:
+            log = open("connection.log", "w")
+            log.write("Connection Information:\n\n")
+            log.close()
+            self.log = open("connection.log", "a")
+        except:
+            print("A log-file could not be generated")
 
     def add_event(self, event: Event):
         not_inserted = True
@@ -67,7 +77,7 @@ class EventQueue:
         for i in range(to_add):
             self.last_control = round(self.last_control + lib.ct, 7)
             control_event = Event(self.last_control, None, (self.last_control,), lambda: lib.eventqueue.control)
-            #lib.eventqueue.add_event(control_event)
+            lib.eventqueue.add_event(control_event)
 
     def exe(self, x, y):
         x(*y)
@@ -114,14 +124,21 @@ class EventQueue:
     def control(self, t):
         for car in lib.carList:
             if not car.ghost:
-                ax, ay = car.controller.control(t)
-                ev = Event(t, car, (t, car, lambda: lib.eventqueue.car_control, (t, car, ax, ay)),
-                           lambda: lib.eventqueue.store_command)
-                if t <= car.stop_time:
-                    lib.eventqueue.add_event(ev)
-                # if not (t > car.controller.stop_time) & car.stop:
-                #     ev = Event(t, car, (t, car, lambda: lib.eventqueue.correct_controls, (t, car, ax, ay)), lambda: lib.eventqueue.store_command)
-                #     lib.eventqueue.add_event(ev)
+                r = random.randint(1, 100) / 100
+                if r > lib.errorrate:
+                    ax, ay = car.controller.control(t)
+                    ev = Event(t, car, (t, car, lambda: lib.eventqueue.car_control, (t, car, ax, ay)),
+                               lambda: lib.eventqueue.store_command)
+                    if t <= car.stop_time:
+                        lib.eventqueue.add_event(ev)
+                    # if not (t > car.controller.stop_time) & car.stop:
+                    #     ev = Event(t, car, (t, car, lambda: lib.eventqueue.correct_controls, (t, car, ax, ay)), lambda: lib.eventqueue.store_command)
+                    #     lib.eventqueue.add_event(ev)
+                    self.successes.append([t, car.id])
+                    self.log.write(str(t)+' Car '+str(car.id)+' OK\n')
+                else:
+                    self.errors.append([t, car.id])
+                    self.log.write(str(t)+' Car '+str(car.id)+' ERROR\n')
 
     def car_control(self, t, car, ax, ay):
         car.control(t, ax, ay)

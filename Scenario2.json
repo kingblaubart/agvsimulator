@@ -9,8 +9,10 @@
     "pt": 0.02,
     "pt_comment": "PathPlanner sampling rate",
     "latency": 0.02,
+    "errorrate": 0,
     "k_p": -0.5,
-    "k_d": -0.2
+    "k_d": -0.2,
+    "Layout": true
   },
   "SpaceFree2D":
     {
