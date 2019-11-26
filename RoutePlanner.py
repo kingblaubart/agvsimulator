@@ -42,8 +42,6 @@ class RoutePlanner:
         for p in pairs:
             p1 = Point(p[0].x, p[1].y)
             p2 = p[1]
-            test = (p1.x == route_points[-1].x) & (p1.y == route_points[-1].y)
-            test2 = (p2.x == route_points[-1].x) & (p2.y == route_points[-1].y)
             if not (p1.x == route_points[-1].x) & (p1.y == route_points[-1].y):
                 route_points.append(p1)
             if not (p2.x == route_points[-1].x) & (p2.y == route_points[-1].y):
@@ -52,11 +50,19 @@ class RoutePlanner:
         # make curves
         new_points = [start]
         for p in range(1, len(route_points)-1):
-            p1, p2 = self.make_curve(route_points[p], route_points[p-1], route_points[p+1])
-            p1 = Point(p1[0], p1[1])
-            p2 = Point(p2[0], p2[1])
-            new_points.append(p1)
-            new_points.append(p2)
+            p, p2, p3 = self.make_curve(route_points[p], route_points[p-1], route_points[p+1])
+            p1 = Point(p[0], p[1])
+            try:
+                if not (new_points[-1].x == p1.x) & (new_points[-1].y == p1.y):
+                    new_points.append(p1)
+            except IndexError:
+                new_points.append(p1)
+
+            if not np.all(p == p3):
+                p2 = Point(p2[0], p2[1])
+                new_points.append(p2)
+                p3 = Point(p3[0], p3[1])
+                new_points.append(p3)
 
         new_points.append(end)
         for p in points:
@@ -88,24 +94,91 @@ class RoutePlanner:
         else:
             if car.end_dir == "east":
                 entry = Point(end.x + self.spacing[0], end.y)
-                end_cross = Point(entry.x, entry.y - np.sign(start.y - end.y) * self.spacing[1])
+                end_cross = Point(entry.x, entry.y + np.sign(start.y - end.y) * self.spacing[1])
             else:
                 if car.end_dir == "south":
                     entry = Point(end.x, end.y - self.spacing[1])
-                    end_cross = Point(entry.x - np.sign(start.x - end.x) * self.spacing[0], entry.y)
+                    end_cross = Point(entry.x + np.sign(start.x - end.x) * self.spacing[0], entry.y)
                 else:
                     entry = Point(end.x - self.spacing[0], end.y)
-                    end_cross = Point(entry.x, entry.y - np.sign(start.y - end.y) * self.spacing[1])
+                    end_cross = Point(entry.x, entry.y + np.sign(start.y - end.y) * self.spacing[1])
 
-        points = [start, ext, start_cross, end_cross, entry, end]
-        return points
+        return [start, ext, start_cross, end_cross, entry, end]
 
     def make_curve(self, point, prev_point, next_point):
         point = np.array([point.x, point.y])
         prev_point = np.array([prev_point.x, prev_point.y])
+        prev_vec = point - prev_point
         next_point = np.array([next_point.x, next_point.y])
+        next_vec = next_point - point
 
-        start = point + np.sign(prev_point - point) * 0.25 * self.spacing
-        end = point + np.sign(next_point - point) * 0.25 * self.spacing
+        # start = point + np.sign(prev_point - point) * 0.25 * self.spacing
+        # end = point + np.sign(next_point - point) * 0.25 * self.spacing
 
-        return start, end
+        angle = np.sign(np.cross(prev_vec, next_vec))
+        if angle == -1:
+            pass
+            start, mid, end = self.make_right_turn(prev_point, point, next_point)
+        else:
+            if angle == 1:
+                pass
+                start, mid, end = self.make_left_turn(prev_point, point, next_point)
+            else:
+                start = mid = end = self.go_straight(prev_point, point)
+
+        return start, mid, end
+
+    def make_right_turn(self, prev_point, point, next_point):
+        prev_vec = point-prev_point
+        vec_norm = prev_vec / np.linalg.norm(prev_vec)
+        dist = np.flip(prev_vec, 0)
+        dist_norm = dist / np.linalg.norm(dist)
+        dist_norm = dist_norm * (-np.cross(vec_norm, dist_norm))
+        print(vec_norm, dist_norm)
+        start = point + np.sign(prev_point - point) * 0.5 * self.spacing + 0.25 * dist_norm * self.spacing
+        end = point + np.sign(next_point - point) * 0.5 * self.spacing - 0.25 * vec_norm * self.spacing
+
+        center = start + np.cos(0.25 * np.pi) * np.linalg.norm(end-start) * dist_norm
+
+        end_c = end-center
+        start_c = start - center
+        r = np.sqrt(end_c[0]**2+end_c[1]**2)
+        print(r)
+        phi1 = np.arctan2(end_c[1], end_c[0])
+        phi2 = np.arctan2(start_c[1], start_c[0])
+        phi = 0.5*(phi1 + phi2)
+        print(phi)
+        mid = np.array([r * np.cos(phi), r * np.sin(phi)]) + center
+        return start, mid, end
+
+    def make_left_turn(self, prev_point, point, next_point):
+        vec = point-prev_point
+        vec_norm = vec / np.linalg.norm(vec)
+        dist = np.flip(vec, 0)
+        dist_norm = dist / np.linalg.norm(dist)
+        dist_norm = dist_norm * (-np.cross(vec_norm, dist_norm))
+        print(vec_norm, dist_norm)
+        start = point + np.sign(prev_point - point) * 0.5 * self.spacing + 0.25 * dist_norm * self.spacing
+        end = point + np.sign(next_point - point) * 0.5 * self.spacing + 0.25 * vec_norm * self.spacing
+
+        center = start - 0.75 * dist_norm * self.spacing
+
+        end_c = end-center
+        start_c = start - center
+        r = np.sqrt(end_c[0]**2+end_c[1]**2)
+        print(r)
+        phi1 = np.arctan2(end_c[1], end_c[0])
+        phi2 = np.arctan2(start_c[1], start_c[0])
+        phi = 0.5*(phi1 + phi2)
+        print(phi)
+        mid = np.array([r * np.cos(phi), r * np.sin(phi)]) + center
+        return start, mid, end
+
+    def go_straight(self, prev_point, point):
+        vec = point-prev_point
+        vec_norm = vec / np.linalg.norm(vec)
+        dist = np.flip(vec, 0)
+        dist_norm = dist / np.linalg.norm(dist)
+        dist_norm = dist_norm * (-np.cross(vec_norm, dist_norm))
+        new = point + 0.25 * dist_norm * self.spacing
+        return new

@@ -1,16 +1,17 @@
 {
+  "animation": true,
   "God":
     {
       "size": [30, 20],
       "dt": 0.005,
       "dt_comment": "data sampling rate",
-      "ct": 0.005,
+      "ct": 0.05,
       "ts_comment": "controller sampling rate",
       "pt": 0.005,
       "pt_comment": "PathPlanner sampling rate",
       "latency": 0.02,
       "errorrate": 0.05,
-      "k_p": -0.5,
+      "k_p": -5,
       "k_d": -0.2,
       "Layout": true,
       "Path": false
@@ -46,6 +47,7 @@
         "spawn_y": 5.5,
         "start_direction": "west",
         "end_direction": "east",
+        "start_time": 0,
         "angle": 3.142,
         "length": 1,
         "width": 0.5,
@@ -53,7 +55,27 @@
         "max_acc": 2,
         "color": "#FFAF00",
         "start": [0, 0],
-        "finish": [4, 3]
+        "finish": [4, 3],
+        "max_latency": 0.02,
+        "min_latency": 0.02
+      },
+      {
+        "index": 1,
+        "spawn_x": 1.4,
+        "spawn_y": 5.5,
+        "start_direction": "east",
+        "end_direction": "south",
+        "start_time": 3,
+        "angle": 0,
+        "length": 1,
+        "width": 0.5,
+        "max_vel": 4,
+        "max_acc": 2,
+        "color": "#FFAF00",
+        "start": [4, 3],
+        "finish": [0, 3],
+        "max_latency": 0.02,
+        "min_latency": 0.02
       }
     ],
   "Path":

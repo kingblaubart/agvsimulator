@@ -168,7 +168,7 @@ class EventQueue:
         if obj.ghost:
             latency = 0
         else:
-            latency = lib.latency/1000
+            latency = random.uniform(obj.min_latency, obj.max_latency)
 
         # Adding the latency
         par = list(parameters)

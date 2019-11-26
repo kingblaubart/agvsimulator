@@ -1,6 +1,7 @@
 import Lib as lib
 from math import sin, cos
 import random
+import numpy as np
 
 
 class Controller:
@@ -28,18 +29,21 @@ class Controller:
             #         self.path.pop(0)
             #         pass
 
-            try:
-                index = int(t / lib.dt)
-                point = self.path[index]
-            except IndexError:
-                point = self.path[-1]
+            if t > self.car.start_time:
+                try:
+                    index = int((t - self.car.start_time) / lib.dt)
+                    point = self.path[index]
+                except IndexError:
+                    point = self.path[-1]
 
-            x = point.real
-            y = point.imag
-
+                x = point.real
+                y = point.imag
+            else:
+                x, y = self.car.spawn
             x_delta = act_data[2] - x
             y_delta = act_data[3] - y
 
+            self.car.distances.append(np.sqrt(x_delta**2 + y_delta**2))
             # adding some kind of noise
 
             # x_delta += (random.random() - 0.5) * .5

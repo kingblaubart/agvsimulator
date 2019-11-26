@@ -114,8 +114,11 @@ class God:
             max_acc = float(car["max_acc"])
             color = str(car["color"])
             dest = car["finish"]
-            car = CarFree2D(car_id, spawn_x, spawn_y, start_dir, end_dir, length, width, angle, max_vel, max_acc, color,
-                            self.ct)
+            min_latency = car["min_latency"]
+            max_latency = car["max_latency"]
+            start_time = car["start_time"]
+            car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel, max_acc, color,
+                            self.ct, min_latency, max_latency)
             car.destination = dest
             self.cars.append(car)
             lib.carList.append(car)
@@ -193,7 +196,7 @@ class God:
         kim = self.parameters["DC-Motor"]["Kim"]
         nm = self.parameters["DC-Motor"]["Nm"]
 
-        ts = lib.ct
+        ts = lib.pt
 
         dc = control.TransferFunction([0, kmt], [jm * lm, bm * lm + jm * rm, bm * rm + kme * kmt])
         pidm = control.TransferFunction([kpm + kdm * nm, kpm * nm + kim, kim * nm], [1, nm, 0])
