@@ -70,14 +70,7 @@ class SpaceFree2DOpenGL(pyglet.window.Window):
             # self.show_shape()
             # self.show_shape_optimized()
             self.show_shape_optimized_new()
-            for obs in self.g.obstacles:
-                glColor3f(colors.to_rgb(obs.color)[0], colors.to_rgb(obs.color)[1], colors.to_rgb(obs.color)[2])
-                glBegin(GL_QUADS)
-                glVertex2f(obs.edges[0] * self.pxm, obs.edges[1] * self.pxm)
-                glVertex2f(obs.edges[2] * self.pxm, obs.edges[3] * self.pxm)
-                glVertex2f(obs.edges[4] * self.pxm, obs.edges[5] * self.pxm)
-                glVertex2f(obs.edges[6] * self.pxm, obs.edges[7] * self.pxm)
-                glEnd()
+
             self.show_waypoints()
 
             for car in self.g.cars:
@@ -395,6 +388,14 @@ class SpaceFree2DOpenGL(pyglet.window.Window):
 
     def show_shape_optimized_new(self):
         if self.start:
+            for obs in self.g.obstacles:
+                glColor3f(colors.to_rgb(obs.color)[0], colors.to_rgb(obs.color)[1], colors.to_rgb(obs.color)[2])
+                glBegin(GL_QUADS)
+                glVertex2f(obs.edges[0] * self.pxm, obs.edges[1] * self.pxm)
+                glVertex2f(obs.edges[2] * self.pxm, obs.edges[3] * self.pxm)
+                glVertex2f(obs.edges[4] * self.pxm, obs.edges[5] * self.pxm)
+                glVertex2f(obs.edges[6] * self.pxm, obs.edges[7] * self.pxm)
+                glEnd()
             for car in self.g.cars:
                 if car.ghost:
                     transparancy = .4

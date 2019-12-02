@@ -7,7 +7,7 @@ from Event import Event
 import Lib as lib
 from scipy import signal
 import control
-
+from RoutePlanner import RoutePlanner
 
 class God:
 
@@ -23,6 +23,7 @@ class God:
     def __init__(self, parameters):
         self.parameters = parameters
         self.cars = []  # list of each car in simulation
+        self.real_cars = [] # list of cars in simulation, does not contain the ghosts
         self.last_timestamp = 0  # stores the last timestamp - to stop the simulation after it
         self.size = parameters["God"]["size"]  # size of the canvas in m
         # self.size = [0, 0]         # stores highest x and y values for matching the simulation area
@@ -38,19 +39,44 @@ class God:
         self.colldet = self.parameters["CollisionControl"]["activated"]
         self.collisions = [10000, 10000, 10000]
         self.latency = parameters["God"]["latency"]
+        self.errorrate = parameters["God"]["errorrate"]
         # INSERT IN LIBRARY
         lib.set_coll_det_freq(parameters["CollisionControl"]["collision_detection_frequency"])
         eq = EventQueue(self)
         lib.set_eventqueue(eq)
         lib.set_latency(self.latency)
+        lib.set_errorate(self.errorrate)
         lib.set_k_d(parameters["God"]["k_d"])
         lib.set_k_p(parameters["God"]["k_p"])
         lib.set_pt(parameters["God"]["pt"])
         self.eventlist_debug = []
         self.make_statespace()
 
-
     def file_read(self):
+        #############################
+        ## INITIALIZE OBSTACLES #####
+        #############################
+        route_planner = RoutePlanner(self)
+        if self.parameters["God"]["Layout"]:
+            obs_x = self.parameters["Layout"]["Obstacles_in_x_direction"]
+            obs_y = self.parameters["Layout"]["Obstacles_in_y_direction"]
+
+            route_planner.make_layout(self.size[0], self.size[1], obs_x, obs_y)
+
+        else:
+            obstacles_origin = self.parameters["Obstacles"]
+
+            for obst in obstacles_origin:
+                spawn_x = float(obst["corners"][0])
+                spawn_y = float(obst["corners"][1])
+                if spawn_x < 0 or spawn_x > self.size[0] or spawn_y < 0 or spawn_y > self.size[1]:
+                    raise Exception('An obstacle cannot be defined outside the canvas boundary.')
+                edges = obst["corners"]
+                color = obst["color"]
+
+                obstacle = Obstacles2D(spawn_x, spawn_y, edges, color)
+                self.obstacles.append(obstacle)
+
         ############################
         ## INITIALIZE EACH CAR #####
         ############################
@@ -67,69 +93,77 @@ class God:
         # color:            Defines the car color
         for car in cars_origin:
             car_id = int(car["index"])
-            spawn_x = float(car["spawn_x"])
-            spawn_y = float(car["spawn_y"])
+            if self.parameters["God"]["Path"]:
+                spawn_x = float(car["spawn_x"])
+                spawn_y = float(car["spawn_y"])
+                start_dir = None
+                end_dir = None
+            else:
+                pos = car["start"]
+                spawn_x = (2 * pos[0] + 1.5) * route_planner.ob_width
+                spawn_y = (2 * pos[1] + 1.5) * route_planner.ob_height
+                start_dir = car["start_direction"]
+                end_dir = car["end_direction"]
             if (spawn_x < 0 or spawn_x > self.size[0] or spawn_y < 0 or spawn_y > self.size[1]):
                 raise Exception('A car cannot spawn outside of canvas.')
+            print(spawn_x, spawn_y)
             angle = float(car["angle"])
             length = float(car["length"])
             width = float(car["width"])
             max_vel = float(car["max_vel"])
             max_acc = float(car["max_acc"])
             color = str(car["color"])
-
-            car = CarFree2D(car_id, spawn_x, spawn_y, length, width, angle, max_vel, max_acc, color,
-                            self.ct)
+            dest = car["finish"]
+            min_latency = car["min_latency"]
+            max_latency = car["max_latency"]
+            start_time = car["start_time"]
+            car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel, max_acc, color,
+                            self.ct, min_latency, max_latency)
+            car.destination = dest
             self.cars.append(car)
             lib.carList.append(car)
 
         ################################
         ## ASSIGN PATH TO EACH CAR #####
         ################################
-        path_origin = self.parameters["Path"]
-        #
-        #
-        # [car_id,timestamp,pos_x,pos_y,destination]
-        #
-        # car_id:       identifies the car
-        # timestamp:    at what time does the car need to be at a certain location? Unit is s
-        # pos_x,pos_y:  where does the car need to be? Unit is m
-        # destination:  True  = the speed of the car at the specified location is supposed to be zero
-        #               False = this is a midway point
-        for path_data in path_origin:
-            car_id = int(path_data["car_id"])
-            pos_x = float(path_data["pos_x"])
-            pos_y = float(path_data["pos_y"])
-            if (pos_x < 0 or pos_x > self.size[0] or pos_y < 0 or pos_y > self.size[1]):
-                raise Exception('The path of a car cannot reach outside the canvas.',car_id, pos_x, pos_y, self.size[0], self.size[1])
+        if self.parameters["God"]["Path"]:
+            path_origin = self.parameters["Path"]
+            #
+            #
+            # [car_id,timestamp,pos_x,pos_y,destination]
+            #
+            # car_id:       identifies the car
+            # timestamp:    at what time does the car need to be at a certain location? Unit is s
+            # pos_x,pos_y:  where does the car need to be? Unit is m
+            # destination:  True  = the speed of the car at the specified location is supposed to be zero
+            #               False = this is a midway point
+            for path_data in path_origin:
+                car_id = int(path_data["car_id"])
+                pos_x = float(path_data["pos_x"])
+                pos_y = float(path_data["pos_y"])
+                if (pos_x < 0 or pos_x > self.size[0] or pos_y < 0 or pos_y > self.size[1]):
+                    raise Exception('The path of a car cannot reach outside the canvas.',car_id, pos_x, pos_y, self.size[0], self.size[1])
 
-            try:
-                self.cars[car_id].set_waypoint(pos_x, pos_y)
-            except IndexError:
-                print("No car with matching ID found")
-            # CHECK IF EVERY CAR HAS AT LEAST ONE DESTINATION POINT
-        for car in self.cars:
-            if len(car.path.points) == 1:
-                raise Exception(
-                    'Every car needs at least one point (the destination) in the path file. The car with id=' + str(
-                        car.id) + ' is missing.')
+                try:
+                    self.cars[car_id].set_waypoint(pos_x, pos_y)
+                except IndexError:
+                    print("No car with matching ID found")
+                # CHECK IF EVERY CAR HAS AT LEAST ONE DESTINATION POINT
+            for car in self.cars:
+                if len(car.path.points) == 1:
+                    raise Exception(
+                        'Every car needs at least one point (the destination) in the path file. The car with id=' + str(
+                            car.id) + ' is missing.')
+        else:
+            for car in self.cars:
+                pos = car.destination
+                car.set_waypoint((2 * pos[0] + 1.5) * route_planner.ob_width, (2 * pos[1] + 1.5) * route_planner.ob_height)
 
-        #############################
-        ## INITIALIZE OBSTACLES #####
-        #############################
-        obstacles_origin = self.parameters["Obstacles"]
+                points = route_planner.make_route(car)
+                car.waypoints = points
+                car.path.points = points
 
-        for obst in obstacles_origin:
-            spawn_x = float(obst["corners"][0])
-            spawn_y = float(obst["corners"][1])
-            if spawn_x < 0 or spawn_x > self.size[0] or spawn_y < 0 or spawn_y > self.size[1]:
-                raise Exception('An obstacle cannot be defined outside the canvas boundary.')
-            # THIS CODE NEEDS TO BE UPDATED IN ORDER TO SUPPORT POLYGONS!
-            edges = obst["corners"]
-            color = obst["color"]
-
-            obstacle = Obstacles2D(spawn_x, spawn_y, edges, color)
-            self.obstacles.append(obstacle)
+                print(car.waypoints)
 
         # Adding outer boundary as obstacles
         # Bottom
@@ -146,36 +180,38 @@ class God:
 
         lib.set_collision(CollisionControl(self))
         lib.set_carcount(len(self.cars))
+        self.real_cars = self.cars[:]
 
         # Make DC-motor
     def make_statespace(self):
-        Jm = self.parameters["DC-Motor"]["Jm"]
-        Bm = self.parameters["DC-Motor"]["Bm"]
-        Kme = self.parameters["DC-Motor"]["Kme"]
-        Kmt = self.parameters["DC-Motor"]["Kmt"]
-        Rm = self.parameters["DC-Motor"]["Rm"]
-        Lm = self.parameters["DC-Motor"]["Lm"]
+        jm = self.parameters["DC-Motor"]["Jm"]
+        bm = self.parameters["DC-Motor"]["Bm"]
+        kme = self.parameters["DC-Motor"]["Kme"]
+        kmt = self.parameters["DC-Motor"]["Kmt"]
+        rm = self.parameters["DC-Motor"]["Rm"]
+        lm = self.parameters["DC-Motor"]["Lm"]
 
-        Kdm = self.parameters["DC-Motor"]["Kdm"]
-        Kpm = self.parameters["DC-Motor"]["Kpm"]
-        Kim = self.parameters["DC-Motor"]["Kim"]
-        Nm = self.parameters["DC-Motor"]["Nm"]
+        kdm = self.parameters["DC-Motor"]["Kdm"]
+        kpm = self.parameters["DC-Motor"]["Kpm"]
+        kim = self.parameters["DC-Motor"]["Kim"]
+        nm = self.parameters["DC-Motor"]["Nm"]
 
-        Ts = 0.005
-        DC = control.TransferFunction([0, Kmt], [Jm * Lm, Bm * Lm + Jm * Rm, Bm * Rm + Kme * Kmt])
-        PIDm = control.TransferFunction([Kpm + Kdm * Nm, Kpm * Nm + Kim, Kim * Nm], [1, Nm, 0])
+        ts = lib.pt
 
-        II = control.TransferFunction([1], [1, 0, 0])
+        dc = control.TransferFunction([0, kmt], [jm * lm, bm * lm + jm * rm, bm * rm + kme * kmt])
+        pidm = control.TransferFunction([kpm + kdm * nm, kpm * nm + kim, kim * nm], [1, nm, 0])
 
-        AGV = II * control.feedback(DC*PIDm, sign=-1)
+        ii = control.TransferFunction([1], [1, 0, 0])
 
-        #AGV = II * (PIDm * DC) / (1 + PIDm * DC)
+        agv = ii * control.feedback(dc*pidm, sign=-1)
 
-        AGVz = control.sample_system(AGV, Ts, method='zoh')
+        #agv = II * (PIDm * DC) / (1 + PIDm * DC)
 
-        SS = control.tf2ss(AGVz)
+        agvz = control.sample_system(agv, ts, method='zoh')
 
-        lib.set_statespace(SS)
+        ss = control.tf2ss(agvz)
+
+        lib.set_statespace(ss)
 
     # OLD - not used anymore
     def simulate_backup(self):
@@ -232,6 +268,13 @@ class God:
             ########
             pass
             lib.eventqueue.exe(event.function(), event.parameters)
+        lib.eventqueue.log.write('\n\n\nSummary of connection:\n\n')
+        transmissions = len(lib.eventqueue.successes) + len(lib.eventqueue.errors)
+        lib.eventqueue.log.write('Successful transmissions: '+str(len(lib.eventqueue.successes))+' (' +
+                                 str(round(100*len(lib.eventqueue.successes)/transmissions, 2))+'%)\n')
+        lib.eventqueue.log.write('Failed transmissions: '+str(len(lib.eventqueue.errors))+' (' +
+                                 str(round(100*len(lib.eventqueue.errors)/transmissions, 2))+'%)')
+        lib.eventqueue.log.close()
 
         self.last_timestamp = lib.data[-1][0]
 
