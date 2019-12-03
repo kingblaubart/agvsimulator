@@ -32,7 +32,7 @@ class God:
         self.controller_data = []
         dt = parameters["God"]["dt"]  # time between each data point in ms
         lib.set_dt(dt)
-        self.ct = parameters["God"]["ct"]  # time between each controller input (just for equidistant controller) in ms (WHY DO WE USE AN EXTRA VARIABLE AND NOT JUST EQUIDISTANT VALUES IN dt?)
+        self.ct = parameters["God"]["ct"]  # time between each controller input
         lib.set_ct(self.ct)
         lib.set_fps(parameters["SpaceFree2D"]["fps"])
         self.obstacles = []
@@ -81,16 +81,7 @@ class God:
         ## INITIALIZE EACH CAR #####
         ############################
         cars_origin = self.parameters["Cars"]
-        #
-        #
-        # [car_id,spawn_x,spawn_y,width,length,max_vel_x,max_vel_y,max_acc_x,max_acc_y,color]
-        #
-        # car_id:           defines the car
-        # spawn_x,spawn_y:  Define the spawn point of the car. Since every car is a rectangle, this is the center of the rectangle
-        # width,length:     Defines the car dimensions
-        # max_vel_x,max_vel_y: Defines the maximum velocities of the car DOES THIS MAKE SENSE? I WOULD RATHER JUST DEFINE A SINGLE VALUE HERE
-        # max_acc_x,max_acc_y: Defines the maximum accelerations of the car DOES THIS MAKE SENSE? I WOULD RATHER JUST DEFINE A SINGLE VALUE HERE
-        # color:            Defines the car color
+
         for car in cars_origin:
             car_id = int(car["index"])
             if self.parameters["God"]["Path"]:
@@ -104,7 +95,8 @@ class God:
                 spawn_y = (2 * pos[1] + 1.5) * route_planner.ob_height
                 start_dir = car["start_direction"]
                 end_dir = car["end_direction"]
-            if (spawn_x < 0 or spawn_x > self.size[0] or spawn_y < 0 or spawn_y > self.size[1]):
+
+            if spawn_x < 0 or spawn_x > self.size[0] or spawn_y < 0 or spawn_y > self.size[1]:
                 raise Exception('A car cannot spawn outside of canvas.')
             print(spawn_x, spawn_y)
             angle = float(car["angle"])
@@ -117,8 +109,10 @@ class God:
             min_latency = car["min_latency"]
             max_latency = car["max_latency"]
             start_time = car["start_time"]
+            errorrate = car["errorrate"]
+
             car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel, max_acc, color,
-                            self.ct, min_latency, max_latency)
+                            self.ct, min_latency, max_latency, errorrate)
             car.destination = dest
             self.cars.append(car)
             lib.carList.append(car)
@@ -142,7 +136,7 @@ class God:
                 pos_x = float(path_data["pos_x"])
                 pos_y = float(path_data["pos_y"])
                 if (pos_x < 0 or pos_x > self.size[0] or pos_y < 0 or pos_y > self.size[1]):
-                    raise Exception('The path of a car cannot reach outside the canvas.',car_id, pos_x, pos_y, self.size[0], self.size[1])
+                    raise Exception('The path of a car cannot reach outside the canvas.', car_id, pos_x, pos_y, self.size[0], self.size[1])
 
                 try:
                     self.cars[car_id].set_waypoint(pos_x, pos_y)
@@ -157,13 +151,14 @@ class God:
         else:
             for car in self.cars:
                 pos = car.destination
-                car.set_waypoint((2 * pos[0] + 1.5) * route_planner.ob_width, (2 * pos[1] + 1.5) * route_planner.ob_height)
+                end_x = (2 * pos[0] + 1.5) * route_planner.ob_width
+                end_y = (2 * pos[1] + 1.5) * route_planner.ob_height
 
+                car.set_waypoint(end_x, end_y)
+                car.end = [end_x, end_y]
                 points = route_planner.make_route(car)
                 car.waypoints = points
                 car.path.points = points
-
-                print(car.waypoints)
 
         # Adding outer boundary as obstacles
         # Bottom
@@ -205,48 +200,11 @@ class God:
 
         agv = ii * control.feedback(dc*pidm, sign=-1)
 
-        #agv = II * (PIDm * DC) / (1 + PIDm * DC)
-
         agvz = control.sample_system(agv, ts, method='zoh')
 
         ss = control.tf2ss(agvz)
 
         lib.set_statespace(ss)
-
-    # OLD - not used anymore
-    def simulate_backup(self):
-        # c_dt... time between each controller input in ms
-        for car in self.cars:
-            car.create_spline()
-
-        n = ceil(self.last_timestamp * 1000 / lib.dt)
-
-        for car in self.cars:
-            car.update()
-
-        coll = CollisionControl(self)
-
-        for i in range(0, n + 1):
-            for car in self.cars:
-                self.calculation.append(car.status(i * lib.dt))
-            if coll.check_for_collision() is False:
-                print("Collision occourred . . . Aborting")
-                break
-
-        for dat in self.simulation:
-            data = dat[:]
-            data[1] = ceil(data[1] / (self.ct / 1000)) * (self.ct / 1000)
-            if not data[-1]:
-                if len(self.controller_data) <= len(self.cars):
-                    for i in range(2, len(data) - 2):
-                        data[i] = 0
-                else:
-                    for obj in reversed(self.controller_data):
-                        if data[0] == obj[0]:
-                            for i in range(2, len(obj)-2):
-                                data[i] = obj[i]
-            del data[-1]
-            self.controller_data.append(data)
 
     def simulate(self):
 

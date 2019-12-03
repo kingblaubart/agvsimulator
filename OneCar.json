@@ -11,8 +11,8 @@
       "pt_comment": "PathPlanner sampling rate",
       "latency": 0.02,
       "errorrate": 0.05,
-      "k_p": -5,
-      "k_d": -0.2,
+      "k_p": 5,
+      "k_d": 0.2,
       "Layout": true,
       "Path": false
     },

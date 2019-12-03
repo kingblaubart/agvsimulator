@@ -125,15 +125,12 @@ class EventQueue:
         for car in lib.carList:
             if not car.ghost:
                 r = random.randint(1, 100) / 100
-                if r > lib.errorrate:
-                    ax, ay = car.controller.control(t)
+                ax, ay = car.controller.control(t)
+                if r > car.errorrate:
                     ev = Event(t, car, (t, car, lambda: lib.eventqueue.car_control, (t, car, ax, ay)),
                                lambda: lib.eventqueue.store_command)
                     if t <= car.stop_time:
                         lib.eventqueue.add_event(ev)
-                    # if not (t > car.controller.stop_time) & car.stop:
-                    #     ev = Event(t, car, (t, car, lambda: lib.eventqueue.correct_controls, (t, car, ax, ay)), lambda: lib.eventqueue.store_command)
-                    #     lib.eventqueue.add_event(ev)
                     self.successes.append([t, car.id])
                     self.log.write(str(t)+' Car '+str(car.id)+' OK\n')
                 else:

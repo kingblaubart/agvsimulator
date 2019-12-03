@@ -5,10 +5,11 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import Lib as lib
-
+import Config as cfg
 
 def start_simulation():
     parameters = json.load(open("OneCar.json"))
+    parameters = cfg.parameters
     g = God(parameters)
     g.file_read()
     g.simulate()

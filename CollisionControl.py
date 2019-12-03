@@ -1,7 +1,7 @@
 from collision import *
 from math import sqrt
 import God
-import CarFree2D
+from newCarFree2D import CarFree2D
 import Lib as lib
 
 

@@ -1,7 +1,6 @@
 from Path import Path
 from math import sqrt, cos, sin, atan
 from Point import Point
-from Polynomial import Polynomial
 from newPathPlanner import PathPlanner
 from Controller import Controller
 import numpy as np
@@ -12,7 +11,7 @@ import Lib as lib
 
 class CarFree2D:
     def __init__(self, id: int, spawn_x, spawn_y, start, start_dir, end_dir, size_x, size_y, angle, max_vel, max_acc, color,
-                 ts, min_latency, max_latency):
+                 ts, min_latency, max_latency, errorrate):
         self.ghost = False
         # PHYSICAL PROPERTIES
         self.color = color                          # color code
@@ -28,8 +27,10 @@ class CarFree2D:
         self.width = size_y                         # in m
         self.start_dir = start_dir
         self.end_dir = end_dir
+        self.end = None
         self.min_latency = min_latency
         self.max_latency = max_latency
+        self.errorrate = errorrate
         self.start_time = start
         # VELOCITY
         self.last_velocity = 0
@@ -138,8 +139,8 @@ class CarFree2D:
 
     def steer(self, t, ax, ay, stop):
         t = round(t, 5)
-        ax += self.acceleration_x_c
-        ay += self.acceleration_y_c
+        ax -= self.acceleration_x_c
+        ay -= self.acceleration_y_c
         self.acceleration_x = ax
         self.acceleration_y = ay
         lp = self.last_position[:]
@@ -174,73 +175,6 @@ class CarFree2D:
     def control(self, t, ax, ay):
         self.acceleration_x_c = ax
         self.acceleration_y_c = ay
-        # self.acceleration_x += ax
-        # self.acceleration_y += ay
-        # self.state[0] = lib.statespace.A.A.dot(self.old_state[0]) + lib.statespace.B.A.dot(self.acceleration_x)
-        # x = lib.statespace.C.A.dot(self.old_state[0]) + lib.statespace.D.A.dot(self.acceleration_x)
-        # x = x[0][0]
-        # # y direction:
-        # self.state[1] = lib.statespace.A.A.dot(self.old_state[1]) + lib.statespace.B.A.dot(self.acceleration_y)
-        # y = lib.statespace.C.A.dot(self.old_state[1]) + lib.statespace.D.A.dot(self.acceleration_y)
-        # y = y[0][0]
-        # self.position_x.append(self.spawn[0] + x)
-        # self.position_y.append(self.spawn[1] + y)
-        # self.last_position = [self.spawn[0] + x, self.spawn[1] + y]
-        # self.time_last_step = t
-
-    # used with EventQueue
-    # car gets controlled with specific values by an Event (car_control)
-    def old_steer(self, t, acc_x, acc_y, stop):
-
-        dt = t - self.time_last_control
-
-        x = (0.5*(dt**2) * self.acceleration_x) + self.last_velocity_x * dt + self.last_position[0]
-        y = (0.5*(dt**2) * self.acceleration_y) + self.last_velocity_y * dt + self.last_position[1]
-
-        self.last_position = [x, y]
-
-        self.last_velocity_x += self.acceleration_x * dt
-        self.last_velocity_y += self.acceleration_y * dt
-        self.last_velocity = sqrt(self.last_velocity_x**2 + self.last_velocity_y**2)
-
-        # update (steer) the car
-        self.time_last_control = t
-        self.acceleration = sqrt(acc_x**2 + acc_y**2)
-        self.stop = stop
-        self.position_x.append(x)
-        self.position_y.append(y)
-        # save new acceleration
-        self.acceleration_x = acc_x
-        self.acceleration_y = acc_y
-        self.debugging1.append([t, self.acceleration])
-        if stop:
-            # self.stop_time = self.last_velocity / self.acceleration + self.time_last_control
-            self.stop_time = t
-        else:
-            comp_vel = complex(self.last_velocity_x, self.last_velocity_y)
-            self.direction = np.angle([comp_vel])[0]
-
-    def old_control(self, t, a_x, a_y):
-        self.acceleration_x += a_x
-        self.acceleration_y += a_y
-        dt = t - self.time_last_control
-        # dt = self.ts
-
-        x = (0.5 * (dt ** 2) * self.acceleration_x) + self.last_velocity_x * dt + self.last_position[0]
-        y = (0.5 * (dt ** 2) * self.acceleration_y) + self.last_velocity_y * dt + self.last_position[1]
-
-        self.last_position = [x, y]
-
-        self.last_velocity_x += self.acceleration_x * dt
-        self.last_velocity_y += self.acceleration_y * dt
-        self.last_velocity = sqrt(self.last_velocity_x ** 2 + self.last_velocity_y ** 2)
-
-        # update (control) the car
-        self.time_last_control = t
-        self.acceleration = sqrt(self.acceleration_x ** 2 + self.acceleration_y ** 2)
-        self.debugging1.append([t, self.acceleration])
-        comp_vel = complex(self.last_velocity_x, self.last_velocity_y)
-        #self.direction = np.angle([comp_vel])[0]
 
     # CONVERTING CONTROL_PREP INTO CONTROLS FOR CAR
     # [timestamp, estimated x, estimated y, abs(acceleration), direction to drive]

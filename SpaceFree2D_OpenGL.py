@@ -10,6 +10,7 @@ import Lib as lib
 import numpy as np
 import os as os
 
+
 class SpaceFree2DOpenGL(pyglet.window.Window):
 
     def __init__(self, g: God):
@@ -337,20 +338,17 @@ class SpaceFree2DOpenGL(pyglet.window.Window):
 
     def show_shape(self):
         for car in self.g.cars:
-            sections = len(car.shape[0])
-            for n in range(0, sections):
-                number_of_values = len(car.shape[0][n])
-                for i in range(0, number_of_values):
-                    x = car.shape[0][n][i]
-                    y = car.shape[1][n][i]
-                    try:
-                        glColor3f(colors.to_rgb(car.color)[0], colors.to_rgb(car.color)[1], colors.to_rgb(car.color)[2])
-                    except ValueError:
-                        clr = self.hex_to_rgb(car.color)
-                        glColor3f(clr[0], clr[1], clr[2])
-                    glBegin(GL_POINTS)
-                    glVertex2f(x * self.pxm, y * self.pxm)
-                    glEnd()
+            for point in car.shape:
+                x = point[0]
+                y = point[1]
+                try:
+                    glColor3f(colors.to_rgb(car.color)[0], colors.to_rgb(car.color)[1], colors.to_rgb(car.color)[2])
+                except ValueError:
+                    clr = self.hex_to_rgb(car.color)
+                    glColor3f(clr[0], clr[1], clr[2])
+                glBegin(GL_POINTS)
+                glVertex2f(x * self.pxm, y * self.pxm)
+                glEnd()
 
     def show_shape_optimized(self):
         if self.start:
