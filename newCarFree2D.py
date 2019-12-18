@@ -86,7 +86,12 @@ class CarFree2D:
     def get_acceleration(self):
         return self.acceleration
 
-    # sets waypoint (given by *.json file) for the car
+    def set_first_position(self):
+        self.position_x = [self.spawn[0]]
+        self.position_y = [self.spawn[1]]
+        self.last_position = self.spawn
+
+        # sets waypoint (given by *.json file) for the car
     def set_waypoint(self, x, y):
         p = Point(x, y)
         self.path.add(p)

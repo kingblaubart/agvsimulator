@@ -3,6 +3,7 @@ from math import sqrt
 import God
 from newCarFree2D import CarFree2D
 import Lib as lib
+import numpy as np
 
 
 class CollisionControl:
@@ -19,7 +20,7 @@ class CollisionControl:
         self.coll_det_freq = god.parameters["CollisionControl"]["collision_detection_frequency"]
         self.list = []
         self.last_position = []
-        self.last_angle = [0]
+        self.last_angle = np.zeros(len(god.real_cars))
         self.collision_free = True
         self.hardcollision_free = True
         self.cars = god.real_cars
@@ -129,20 +130,20 @@ class CollisionControl:
                     c_centroid = c.pos
                     c_pos = [c_centroid.x, c_centroid.y]
                     c_cage = self.safety_zone(c, self.car_spacing)
-                    for ob_cage_i in range(len(self.coll_obst_cages)):
-                        ob_cage = self.coll_obst_cages[ob_cage_i]
-                        if lib.dist(self.god.obstacles[ob_cage_i].centroid, c_pos) <= (self.god.obstacles[ob_cage_i].min_dist + self.cars[car_col_i].min_dist):
-                            if collide(c_cage, ob_cage):
-                                self.collision_free, self.god.collisionfree = False, False
-                                if collide(c, self.coll_obstacles[self.coll_obst_cages.index(ob_cage)]):
-                                    print("Car ", car_col.id, "Hard Collision with obstacle @", round(self.list[0][0], 3))
-                                    if self.god.collisions[0] == 10000:
-                                        self.god.collisions = [self.list[0][0], car_col.id, car_col.id]
-                                    self.hardcollision_free = False
-                                    break
-                                else:
-                                    pass
-                                    # print("Car", car_col.id, "Soft Collision with obstacle @", round(self.list[0][0], 3))
+                    # for ob_cage_i in range(len(self.coll_obst_cages)):
+                    #     ob_cage = self.coll_obst_cages[ob_cage_i]
+                    #     if lib.dist(self.god.obstacles[ob_cage_i].centroid, c_pos) <= (self.god.obstacles[ob_cage_i].min_dist + self.cars[car_col_i].min_dist):
+                    #         if collide(c_cage, ob_cage):
+                    #             self.collision_free, self.god.collisionfree = False, False
+                    #             if collide(c, self.coll_obstacles[self.coll_obst_cages.index(ob_cage)]):
+                    #                 print("Car ", car_col.id, "Hard Collision with obstacle @", round(self.list[0][0], 3))
+                    #                 if self.god.collisions[0] == 10000:
+                    #                     self.god.collisions = [self.list[0][0], car_col.id, car_col.id]
+                    #                 self.hardcollision_free = False
+                    #                 break
+                    #             else:
+                    #                 pass
+                    #                 # print("Car", car_col.id, "Soft Collision with obstacle @", round(self.list[0][0], 3))
                     cars_temp.remove(car_col)
                     for car in cars_temp:
                         c2 = self.make_car_poly(car)

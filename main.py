@@ -8,8 +8,8 @@ import Lib as lib
 import Config as cfg
 
 def start_simulation():
-    parameters = json.load(open("OneCar.json"))
-    parameters = cfg.parameters
+    parameters = json.load(open("BadMotor.json"))
+    #parameters = cfg.parameters
     g = God(parameters)
     g.file_read()
     g.simulate()

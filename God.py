@@ -98,7 +98,7 @@ class God:
 
             if spawn_x < 0 or spawn_x > self.size[0] or spawn_y < 0 or spawn_y > self.size[1]:
                 raise Exception('A car cannot spawn outside of canvas.')
-            print(spawn_x, spawn_y)
+
             angle = float(car["angle"])
             length = float(car["length"])
             width = float(car["width"])

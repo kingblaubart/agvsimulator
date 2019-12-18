@@ -90,6 +90,7 @@ class RoutePlanner:
                     spawn_y = spawn_y + 0.25 * self.spacing[1]
         new_points[0] = Point(spawn_x, spawn_y)
         car.spawn = [spawn_x, spawn_y]
+        car.set_first_position()
         return new_points
 
     def make_exit_and_entry(self, car):
@@ -113,7 +114,7 @@ class RoutePlanner:
 
         if car.end_dir == "north":
             entry = Point(end.x, end.y + self.spacing[1])
-            end_cross = Point(entry.x - np.sign(start.x - end.x) * self.spacing[0], entry.y)
+            end_cross = Point(entry.x + np.sign(start.x - end.x) * self.spacing[0], entry.y)
         else:
             if car.end_dir == "east":
                 entry = Point(end.x + self.spacing[0], end.y)
@@ -125,7 +126,7 @@ class RoutePlanner:
                 else:
                     entry = Point(end.x - self.spacing[0], end.y)
                     end_cross = Point(entry.x, entry.y + np.sign(start.y - end.y) * self.spacing[1])
-        print("points", [start.x, start.y], [ext.x, ext.y], [start_cross.x, start_cross.y], [end_cross.x, end_cross.y], [entry.x, entry.y], [end.x, end.y])
+        # print("points", [start.x, start.y], [ext.x, ext.y], [start_cross.x, start_cross.y], [end_cross.x, end_cross.y], [entry.x, entry.y], [end.x, end.y])
         return [start, ext, start_cross, end_cross, entry, end]
 
     def make_curve(self, point, prev_point, next_point, car):
@@ -162,7 +163,7 @@ class RoutePlanner:
         dist = np.flip(prev_vec, 0)
         dist_norm = dist / np.linalg.norm(dist)
         dist_norm = dist_norm * (-np.cross(vec_norm, dist_norm))
-        #print(vec_norm, dist_norm)
+
         start = point + np.sign(prev_point - point) * 0.5 * self.spacing + 0.25 * dist_norm * self.spacing * start_fin
         end = point + np.sign(next_point - point) * 0.5 * self.spacing - 0.25 * vec_norm * self.spacing * start_fin
 
@@ -171,11 +172,11 @@ class RoutePlanner:
         end_c = end-center
         start_c = start - center
         r = np.sqrt(end_c[0]**2+end_c[1]**2)
-        #print(r)
+
         phi1 = np.arctan2(end_c[1], end_c[0])
         phi2 = np.arctan2(start_c[1], start_c[0])
         phi = 0.5*(phi1 + phi2)
-        #print(phi)
+
         mid = np.array([r * np.cos(phi), r * np.sin(phi)]) + center
         return start, mid, end
 
@@ -185,7 +186,7 @@ class RoutePlanner:
         dist = np.flip(vec, 0)
         dist_norm = dist / np.linalg.norm(dist)
         dist_norm = dist_norm * (-np.cross(vec_norm, dist_norm))
-        #print(vec_norm, dist_norm)
+
         start = point + np.sign(prev_point - point) * 0.5 * self.spacing + 0.25 * dist_norm * self.spacing
         end = point + np.sign(next_point - point) * 0.5 * self.spacing + 0.25 * vec_norm * self.spacing
 
@@ -194,11 +195,11 @@ class RoutePlanner:
         end_c = end-center
         start_c = start - center
         r = np.sqrt(end_c[0]**2+end_c[1]**2)
-        #print(r)
+
         phi1 = np.arctan2(end_c[1], end_c[0])
         phi2 = np.arctan2(start_c[1], start_c[0])
         phi = 0.5*(phi1 + phi2)
-        #print(phi)
+
         mid = np.array([r * np.cos(phi), r * np.sin(phi)]) + center
         return start, mid, end
 

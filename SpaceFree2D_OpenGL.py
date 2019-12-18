@@ -435,7 +435,7 @@ class SpaceFree2DOpenGL(pyglet.window.Window):
         if self.timestamp > self.stop:
             pyglet.clock.unschedule(self.update)
             im = 0
-            writer = imageio.get_writer('animation.mp4', fps=self.fps)
+            writer = imageio.get_writer('animation.gif', fps=self.fps)
             for i in range(self.counter):
                 im = imageio.imread('video/' + str(i) + '.png')
                 writer.append_data(im)
