@@ -36,6 +36,7 @@ class PathPlanner:
         self.max_straight_speed = vel
         self.max_acceleration = acc
         self.max_deceleration = -acc
+        self.directions = None
 
     ############################
     ### FUNCTION DEFINITIONS ###
@@ -576,4 +577,6 @@ class PathPlanner:
          self.acceleration_from_v_equi_in_t, self.s_from_v_equi_in_t, self.v_equi_in_t, self.a_from_v_equi_in_t) = \
             self.getQuinticBezierTrajectory(path_points, elongation_factor=1.2, speed_start=0, speed_end=0,
                                             t_delta_equi_in_t=lib.pt, plots_enabled=True)
-
+        self.directions = np.angle(self.velocity_from_v_equi_in_t)
+        plt.plot(self.directions)
+        plt.show()

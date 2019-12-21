@@ -32,6 +32,7 @@ class CarFree2D:
         self.max_latency = max_latency
         self.errorrate = errorrate
         self.start_time = start
+        self.wheelbase = self.length - 0.5 * self.width
         # VELOCITY
         self.last_velocity = 0
         self.last_velocity_x = 0                      # velocity after last control input
@@ -177,6 +178,28 @@ class CarFree2D:
 
         self.time_last_step = t
 
+    def steer_ackermann(self, t, a, angle):
+        angle = angle % (2 * np.pi)
+        start_angle = self.direction - np.pi/2
+        pos = self.last_position
+        self.state = lib.statespace.A.A.dot(self.old_state) + lib.statespace.B.A.dot(a)
+        arc = lib.statespace.C.A.dot(self.old_state) + lib.statespace.D.A.dot(a)
+
+        try:
+            radius = self.wheelbase / m.atan(angle)
+            phi = arc / radius
+            center_of_turning_cycle = np.array(self.last_position) - np.array([radius, 0])
+            point = np.array([radius * np.cos(phi), radius * np.sin(phi)])
+            point = point + center_of_turning_cycle - self.last_position
+
+            point = np.dot(np.array([[np.cos(start_angle), -np.sin(start_angle)], [np.sin(start_angle), np.cos(start_angle)]]), point.reshape(-1, 1))
+            point = point + np.array(self.last_position).reshape(-1, 1)
+
+            self.last_position = point.reshape(1, -1).tolist()[0]
+
+        except ZeroDivisionError:
+            pass
+
     def control(self, t, ax, ay):
         self.acceleration_x_c = ax
         self.acceleration_y_c = ay
@@ -225,9 +248,6 @@ class CarFree2D:
 
             else:
                 dt = (self.stop_time - self.time_last_control)
-
-            x = 0.5 * (dt ** 2) * m.cos(self.direction) * self.acceleration + self.last_velocity_x * dt + self.last_position[0]
-            y = 0.5 * (dt ** 2) * m.sin(self.direction) * self.acceleration + self.last_velocity_y * dt + self.last_position[1]
 
             x = self.last_position[0]
             y = self.last_position[1]
