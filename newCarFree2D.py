@@ -200,6 +200,15 @@ class CarFree2D:
         except ZeroDivisionError:
             pass
 
+    def control_ackermann(self, t, a, b, error):
+        # lateral controller
+        k = 0.1     # controller parameter
+        cross_track_steering = m.atan(k * error / self.velocity[-1])
+        heading_error = m.atan(-a/b) - self.direction
+        stearing_input = cross_track_steering + heading_error
+        # longitudinal controller
+
+
     def control(self, t, ax, ay):
         self.acceleration_x_c = ax
         self.acceleration_y_c = ay
