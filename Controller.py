@@ -26,10 +26,10 @@ class Controller:
                     index = int((t - self.car.start_time) / lib.dt)
                     point = self.path[index]
                     next_point = self.path[index+1]
-                    planned_direction = self.car.planner.direction(index)
+                    planned_direction = self.car.planner.directions[index]
                 except IndexError:
                     next_point = point = self.path[-1]
-                    planned_direction = self.car.planner.direction[-1]
+                    planned_direction = self.car.planner.directions[-1]
 
                 x = point.real
                 y = point.imag
@@ -45,24 +45,25 @@ class Controller:
             a = y - y_next
             b = x_next - x
             c = x * y_next - x_next * y
+            x_delta = act_data[2] - x
+            y_delta = act_data[3] - y
+
+            vx = (x_delta - self.last_x_delta) / lib.ct
+            vy = (y_delta - self.last_y_delta) / lib.ct
 
             crosstrack_error = (a * act_data[2] + b*act_data[3] + c) / (sqrt(a**2 + b**2))
 
-            dir = act_data[-1]
-            steering = self.lateral_control(t, a, b, crosstrack_error, dir)
+            drc = act_data[-1]
 
-            x_delta = act_data[2] - x
-            y_delta = act_data[3] - y
+            vel = act_data[-2]
+            steering = self.lateral_control(t, a, b, crosstrack_error, drc, vel)
 
             distance = sqrt(x_delta**2 + y_delta**2)
             self.car.distances.append(distance)
 
-            decider = (planned_direction - dir + pi/2) % (2*pi)
+            decider = (planned_direction - drc + pi/2) % (2*pi)
 
             throttle = int(decider/pi) == 0
-
-            vx = (x_delta - self.last_x_delta) / lib.ct
-            vy = (y_delta - self.last_y_delta) / lib.ct
 
             ax = lib.k_p * x_delta + lib.k_d * vx
             ay = lib.k_p * y_delta + lib.k_d * vy
@@ -78,9 +79,9 @@ class Controller:
             acc = steering = 0
         return acc, steering
 
-    def lateral_control(self, t, a, b, error, drc):
+    def lateral_control(self, t, a, b, error, drc, vel):
         k = 0.1  # controller parameter
-        cross_track_steering = atan(k * error / self.car.velocity[-1])  # Note: Difference in Implementation, instead of v --> k_v + v
+        cross_track_steering = atan(k * error / vel)  # Note: Difference in Implementation, instead of v --> k_v + v
         heading_error = atan(-a / b) - drc
         return cross_track_steering + heading_error
 

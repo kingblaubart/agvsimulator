@@ -8,7 +8,7 @@ import Lib as lib
 import Config as cfg
 
 def start_simulation():
-    parameters = json.load(open("BadMotor.json"))
+    parameters = json.load(open("Ackermann.json"))
     #parameters = cfg.parameters
     g = God(parameters)
     g.file_read()
@@ -21,7 +21,7 @@ def start_simulation():
     t = np.asarray(g.cars[0].planner.t_equi_in_t)
 
     for car in g.cars:
-        plt.plot(car.distances)
+        plt.plot(car.position_x, car.position_y)
     plt.show()
 
     if parameters["animation"]:

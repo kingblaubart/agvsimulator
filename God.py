@@ -206,6 +206,7 @@ class God:
 
         lib.set_statespace(ss)
 
+
     def simulate(self):
 
         # Spline-Creation
@@ -228,10 +229,11 @@ class God:
             lib.eventqueue.exe(event.function(), event.parameters)
         lib.eventqueue.log.write('\n\n\nSummary of connection:\n\n')
         transmissions = len(lib.eventqueue.successes) + len(lib.eventqueue.errors)
-        lib.eventqueue.log.write('Successful transmissions: '+str(len(lib.eventqueue.successes))+' (' +
-                                 str(round(100*len(lib.eventqueue.successes)/transmissions, 2))+'%)\n')
-        lib.eventqueue.log.write('Failed transmissions: '+str(len(lib.eventqueue.errors))+' (' +
-                                 str(round(100*len(lib.eventqueue.errors)/transmissions, 2))+'%)')
+        if transmissions > 0:
+            lib.eventqueue.log.write('Successful transmissions: '+str(len(lib.eventqueue.successes))+' (' +
+                                     str(round(100*len(lib.eventqueue.successes)/transmissions, 2))+'%)\n')
+            lib.eventqueue.log.write('Failed transmissions: '+str(len(lib.eventqueue.errors))+' (' +
+                                     str(round(100*len(lib.eventqueue.errors)/transmissions, 2))+'%)')
         lib.eventqueue.log.close()
 
         self.last_timestamp = lib.data[-1][0]

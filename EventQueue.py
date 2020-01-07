@@ -77,7 +77,7 @@ class EventQueue:
         for i in range(to_add):
             self.last_control = round(self.last_control + lib.ct, 7)
             control_event = Event(self.last_control, None, (self.last_control,), lambda: lib.eventqueue.control)
-            lib.eventqueue.add_event(control_event)
+            #lib.eventqueue.add_event(control_event)
 
     def exe(self, x, y):
         x(*y)
@@ -107,6 +107,9 @@ class EventQueue:
     # gives the cars their acc and dir values
     def car_steering(self, t, car: CarFree2D, acc_x, acc_y,  stop, tag):
         car.steer(t, acc_x, acc_y, stop)
+
+    def car_steering_ackermann(self, t, car: CarFree2D, acc, drc, stop, tag):
+        car.steer_ackermann(t, acc, drc)
 
     # appends the current state to the library, its entries are needed to
     # display the car in the animation

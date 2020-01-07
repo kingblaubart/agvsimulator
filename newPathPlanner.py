@@ -578,5 +578,12 @@ class PathPlanner:
             self.getQuinticBezierTrajectory(path_points, elongation_factor=1.2, speed_start=0, speed_end=0,
                                             t_delta_equi_in_t=lib.pt, plots_enabled=True)
         self.directions = np.angle(self.velocity_from_v_equi_in_t)
-        plt.plot(self.directions)
+        z = 2+3
+        shifted_dirs = self.directions[:]
+        shifted_dirs = np.insert(shifted_dirs, 0, 0)
+        shifted_dirs = np.delete(shifted_dirs, -1)
+        z = 2
+        self.directions -= shifted_dirs
+
+        plt.plot(self.a_from_v_equi_in_t)
         plt.show()
