@@ -21,9 +21,15 @@ def start_simulation():
     t = np.asarray(g.cars[0].planner.t_equi_in_t)
 
     for car in g.cars:
+        plt.plot(car.debugging1)
+        plt.plot(car.debugging2)
+        plt.show()
         plt.plot(car.position_x, car.position_y)
-    plt.show()
+        plt.show()
 
+    for car in g.cars:
+        plt.plot(car.debugging3)
+    plt.show()
     if parameters["animation"]:
         s = SpaceFree2DOpenGL(g)
         s.create_space()

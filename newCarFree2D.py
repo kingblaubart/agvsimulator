@@ -19,7 +19,7 @@ class CarFree2D:
         self.destination = 0
         self.position_x = [spawn_x]                          # not used for EventQueue
         self.position_y = [spawn_y]
-        self.direction = angle                      # direction of the car
+        self.direction = start_dir                      # direction of the car
         self.start_direction = angle                # start-direction of the car
         self.last_position = [spawn_x, spawn_y]     # position after last control input
         self.length = size_x                        # in m
@@ -65,6 +65,8 @@ class CarFree2D:
         # DEBUGGING
         self.debugging1 = []
         self.debugging2 = []
+        self.debugging3 = []
+        self.debugging4 = []
         self.dc_pos = []
         dim = len(lib.statespace.A)
         #self.old_state = [np.zeros(dim).reshape(-1, 1), np.zeros(dim).reshape(-1, 1)]
@@ -114,7 +116,7 @@ class CarFree2D:
 
     # creates spline for the given waypoints (from the *.json file)
     def create_spline(self):
-        self.planner = PathPlanner(self.max_velocity, self.max_acceleration)
+        self.planner = PathPlanner(self, self.max_velocity, self.max_acceleration)
         self.planner.make_path(self.path.points)
         self.write_path()
         if not self.ghost:
@@ -182,6 +184,8 @@ class CarFree2D:
 
     def steer_ackermann(self, t, a, angle):
         angle = (angle + self.steering_control) % (2 * np.pi)
+        if angle > pi:
+            angle = angle - 2*pi
         a += self.acceleration_controller
         start_angle = self.direction - np.pi/2
         pos = self.last_position
@@ -210,8 +214,11 @@ class CarFree2D:
             self.position_x.append(x)
             self.position_y.append(y)
 
-            self.direction = (phi + self.direction) % (2*pi)
-            print(self.direction)
+            self.direction = (-phi + self.direction) % (2*pi)    # verified
+
+            self.debugging1.append(arc)
+            self.debugging2.append(phi)
+            self.debugging3.append(self.direction)
 
         except ZeroDivisionError:
             print('straight')
@@ -247,7 +254,7 @@ class CarFree2D:
         t = self.start_time
         for i in range(len(self.planner.a_from_v_equi_in_t)):
             acc = self.planner.a_from_v_equi_in_t[i]
-            drc = self.planner.directions[i]
+            drc = self.planner.delta[i]
             if acc == self.planner.a_from_v_equi_in_t[-1]:
                 stop = True
             ev = Event(t, self, (t, self, acc, drc, stop, "steering"), lambda: lib.eventqueue.car_steering_ackermann)

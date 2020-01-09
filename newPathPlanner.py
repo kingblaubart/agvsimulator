@@ -10,7 +10,7 @@ init_printing(use_unicode=True)
 
 class PathPlanner:
 
-    def __init__(self, vel, acc):
+    def __init__(self, car, vel, acc):
         ################################################################################
         #   DEFINE BOUNDARY CONDITIONS (COMMENTED VARIABLE ARE FUNCTION INPUTS)        #
         ################################################################################
@@ -37,6 +37,8 @@ class PathPlanner:
         self.max_acceleration = acc
         self.max_deceleration = -acc
         self.directions = None
+        self.delta = None
+        self.car = car
 
     ############################
     ### FUNCTION DEFINITIONS ###
@@ -74,6 +76,7 @@ class PathPlanner:
         velocity_start = speed_start * np.exp(1j * orientation_start)
         velocity_end = speed_start * np.exp(1j * orientation_end)
         print('Initial orientation is ' + str(orientation_start) + '.')
+        self.car.direction = self.car.start_dir = orientation_start
         print('Goal orientation is ' + str(orientation_end) + '.')
         ##################################################
         #  CHECK FOR REASONABLE INPUT ###################
@@ -578,12 +581,19 @@ class PathPlanner:
             self.getQuinticBezierTrajectory(path_points, elongation_factor=1.2, speed_start=0, speed_end=0,
                                             t_delta_equi_in_t=lib.pt, plots_enabled=True)
         self.directions = np.angle(self.velocity_from_v_equi_in_t)
-        z = 2+3
+
         shifted_dirs = self.directions[:]
         shifted_dirs = np.insert(shifted_dirs, 0, 0)
         shifted_dirs = np.delete(shifted_dirs, -1)
-        z = 2
-        self.directions -= shifted_dirs
+        diff_dirs = shifted_dirs - self.directions
 
-        plt.plot(self.a_from_v_equi_in_t)
+        shifted_dist = self.s_from_v_equi_in_t
+        shifted_dist = np.insert(shifted_dist, 0, 0)
+        shifted_dist = np.delete(shifted_dist, -1)
+        distances = self.s_from_v_equi_in_t - shifted_dist
+
+        self.delta = np.arctan((2*self.car.wheelbase*np.sin(diff_dirs))/distances)
+        self.delta[0] = 0
+        plt.plot(self.delta)
         plt.show()
+        z=5
