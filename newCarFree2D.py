@@ -1,5 +1,5 @@
 from Path import Path
-from math import sqrt, cos, sin, atan, pi
+from math import sqrt, cos, sin, tan, pi
 from Point import Point
 from newPathPlanner import PathPlanner
 from Controller import Controller
@@ -197,7 +197,7 @@ class CarFree2D:
 
         # print(start_angle)
         try:
-            radius = self.wheelbase / atan(angle)
+            radius = self.wheelbase / tan(angle)
             phi = arc / radius
             center_of_turning_cycle = np.array(pos) - np.array([radius, 0])
             point = np.array([radius * cos(phi), radius * sin(phi)])
@@ -214,7 +214,7 @@ class CarFree2D:
             self.position_x.append(x)
             self.position_y.append(y)
 
-            self.direction = (-phi + self.direction) % (2*pi)    # verified
+            self.direction = (phi + self.direction) % (2*pi)
 
             self.debugging1.append(arc)
             self.debugging2.append(phi)
@@ -222,6 +222,11 @@ class CarFree2D:
 
         except ZeroDivisionError:
             print('straight')
+            # x = self.last_position[0] + arc * cos(self.direction)
+            # y = self.last_position[1] + arc * sin(self.direction)
+            # self.last_position = [x, y]
+            # self.position_x.append(x)
+            # self.position_y.append(y)
 
     def control_ackermann(self, acc, drc):
         self.acceleration_controller = acc

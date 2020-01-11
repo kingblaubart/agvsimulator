@@ -37,7 +37,7 @@ class PathPlanner:
         self.max_acceleration = acc
         self.max_deceleration = -acc
         self.directions = None
-        self.delta = None
+        self.delta = []
         self.car = car
 
     ############################
@@ -591,9 +591,22 @@ class PathPlanner:
         shifted_dist = np.insert(shifted_dist, 0, 0)
         shifted_dist = np.delete(shifted_dist, -1)
         distances = self.s_from_v_equi_in_t - shifted_dist
-
-        self.delta = np.arctan((2*self.car.wheelbase*np.sin(diff_dirs))/distances)
-        self.delta[0] = 0
-        plt.plot(self.delta)
-        plt.show()
+        wheelbase = self.car.wheelbase
+        deltas = []
+        last_dir = self.car.start_dir
+        test = []
+        for i in range(len(distances)-1):
+            point = self.path_from_v_equi_in_t[i]
+            next_point = self.path_from_v_equi_in_t[i+1]
+            point_dir = np.angle(next_point - point)
+            test.append(point_dir)
+            drc = point_dir - last_dir
+            dist = distances[i]
+            self.delta.append(atan((2*wheelbase*sin(drc))/dist))
+            last_dir = (last_dir + 2*drc) % (2*pi)
+        self.delta.append(0)
+        # self.delta = np.arctan((2*self.car.wheelbase*np.sin(diff_dirs))/distances)
+        # self.delta[0] = 0
+        # plt.plot(self.delta)
+        # plt.show()
         z=5
