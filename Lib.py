@@ -68,6 +68,7 @@ def set_errorate(e):
     global errorrate
     errorrate = e
 
+
 def set_carcount(c):
     global car_count
     car_count = c
@@ -91,6 +92,11 @@ def set_statespace(ss):
 # some methods used my multiple classes
 def angle(p1: Point, p2: Point):
     phi = m.atan2(p2.y - p1.y, p2.x - p1.x)
+    return phi
+
+
+def goodangle(p1, p2):
+    phi = m.atan2(p2.imag - p1.imag, p2.real - p1.real)
     return phi
 
 

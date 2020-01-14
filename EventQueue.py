@@ -108,6 +108,9 @@ class EventQueue:
     def car_steering(self, t, car: CarFree2D, acc_x, acc_y,  stop, tag):
         car.steer(t, acc_x, acc_y, stop)
 
+    def car_steering_ackermann(self, t, car: CarFree2D, acc, drc, stop, tag):
+        car.steer_ackermann(t, acc, drc)
+
     # appends the current state to the library, its entries are needed to
     # display the car in the animation
     def get_data(self, t):
@@ -125,23 +128,21 @@ class EventQueue:
         for car in lib.carList:
             if not car.ghost:
                 r = random.randint(1, 100) / 100
-                if r > lib.errorrate:
-                    ax, ay = car.controller.control(t)
-                    ev = Event(t, car, (t, car, lambda: lib.eventqueue.car_control, (t, car, ax, ay)),
+                a, angle = car.controller.control(t)
+                if r > car.errorrate:
+                    ev = Event(t, car, (t, car, lambda: lib.eventqueue.car_control, (t, car, a, angle)),
                                lambda: lib.eventqueue.store_command)
                     if t <= car.stop_time:
                         lib.eventqueue.add_event(ev)
-                    # if not (t > car.controller.stop_time) & car.stop:
-                    #     ev = Event(t, car, (t, car, lambda: lib.eventqueue.correct_controls, (t, car, ax, ay)), lambda: lib.eventqueue.store_command)
-                    #     lib.eventqueue.add_event(ev)
                     self.successes.append([t, car.id])
                     self.log.write(str(t)+' Car '+str(car.id)+' OK\n')
                 else:
                     self.errors.append([t, car.id])
                     self.log.write(str(t)+' Car '+str(car.id)+' ERROR\n')
 
-    def car_control(self, t, car, ax, ay):
-        car.control(t, ax, ay)
+    def car_control(self, t, car, a, angle):
+        return
+        car.control_ackermann(a, angle)
 
     def correct_controls(self, t, car, ax, ay):
         try:

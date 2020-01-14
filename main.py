@@ -5,10 +5,11 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import Lib as lib
-
+import Config as cfg
 
 def start_simulation():
-    parameters = json.load(open("OneCar.json"))
+    parameters = json.load(open("Ackermann.json"))
+    #parameters = cfg.parameters
     g = God(parameters)
     g.file_read()
     g.simulate()
@@ -20,9 +21,15 @@ def start_simulation():
     t = np.asarray(g.cars[0].planner.t_equi_in_t)
 
     for car in g.cars:
-        plt.plot(car.distances)
+        # plt.plot(car.debugging1)
+        # plt.plot(car.debugging2)
+        # plt.show()
+        plt.plot(car.position_x, car.position_y)
     plt.show()
 
+    for car in g.cars:
+        plt.plot(car.distances)
+    plt.show()
     if parameters["animation"]:
         s = SpaceFree2DOpenGL(g)
         s.create_space()
