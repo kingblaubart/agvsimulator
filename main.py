@@ -28,7 +28,7 @@ def start_simulation():
     plt.show()
 
     for car in g.cars:
-        plt.plot(car.debugging3)
+        plt.plot(car.distances)
     plt.show()
     if parameters["animation"]:
         s = SpaceFree2DOpenGL(g)

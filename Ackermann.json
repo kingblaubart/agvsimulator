@@ -53,6 +53,7 @@
         "width": 0.5,
         "max_vel": 4,
         "max_acc": 2,
+        "max_steering_angle": 1.22,
         "color": "#FFAF00",
         "start": [0, 0],
         "finish": [2, 3],

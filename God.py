@@ -104,6 +104,7 @@ class God:
             width = float(car["width"])
             max_vel = float(car["max_vel"])
             max_acc = float(car["max_acc"])
+            max_steering_angle = float(car["max_steering_angle"])
             color = str(car["color"])
             dest = car["finish"]
             min_latency = car["min_latency"]
@@ -111,8 +112,8 @@ class God:
             start_time = car["start_time"]
             errorrate = car["errorrate"]
 
-            car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel, max_acc, color,
-                            self.ct, min_latency, max_latency, errorrate)
+            car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel,
+                            max_acc, max_steering_angle, color, min_latency, max_latency, errorrate)
             car.destination = dest
             self.cars.append(car)
             lib.carList.append(car)
@@ -205,7 +206,6 @@ class God:
         ss = control.tf2ss(agvz)
 
         lib.set_statespace(ss)
-
 
     def simulate(self):
 

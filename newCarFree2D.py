@@ -9,8 +9,8 @@ import Lib as lib
 
 
 class CarFree2D:
-    def __init__(self, id: int, spawn_x, spawn_y, start, start_dir, end_dir, size_x, size_y, angle, max_vel, max_acc, color,
-                 ts, min_latency, max_latency, errorrate):
+    def __init__(self, id: int, spawn_x, spawn_y, start, start_dir, end_dir, size_x, size_y, angle, max_vel, max_acc,
+                 max_steering_angle, color, min_latency, max_latency, errorrate):
         self.ghost = False
         # PHYSICAL PROPERTIES
         self.color = color                          # color code
@@ -50,6 +50,7 @@ class CarFree2D:
         self.steering = 0                           # steering angle given by last control input
         self.direction = 0                          # direction angle given by last control input
         self.steering_control = 0
+        self.max_steering_angle = max_steering_angle
         # PATH
         self.shape = []                             # shape of the planned path (without exact timestamp)
         self.path = Path(self.spawn)                # "shape" with exact timestamp
@@ -186,6 +187,8 @@ class CarFree2D:
         angle = (angle + self.steering_control) % (2 * np.pi)
         if angle > pi:
             angle = angle - 2*pi
+        angle = min(self.max_steering_angle, angle)
+        angle = max(-self.max_steering_angle, angle)
         a += self.acceleration_controller
         start_angle = self.direction - np.pi/2
         pos = self.last_position
@@ -194,8 +197,7 @@ class CarFree2D:
         arc = new_arc - self.full_arc
         self.full_arc = new_arc
         self.old_state = self.state
-
-        # print(start_angle)
+        self.last_velocity = arc / lib.pt
         try:
             radius = self.wheelbase / tan(angle)
             phi = arc / radius
@@ -221,15 +223,14 @@ class CarFree2D:
             self.debugging3.append(self.direction)
 
         except ZeroDivisionError:
-            print('straight')
-            # x = self.last_position[0] + arc * cos(self.direction)
-            # y = self.last_position[1] + arc * sin(self.direction)
-            # self.last_position = [x, y]
-            # self.position_x.append(x)
-            # self.position_y.append(y)
+            x = self.last_position[0] + arc * cos(self.direction)
+            y = self.last_position[1] + arc * sin(self.direction)
+            self.last_position = [x, y]
+            self.position_x.append(x)
+            self.position_y.append(y)
 
     def control_ackermann(self, acc, drc):
-        self.acceleration_controller = acc
+        self.acceleration_controller = -acc
         self.steering_control = drc
 
     def control(self, t, ax, ay):
