@@ -1,5 +1,6 @@
 import Lib as lib
-from math import sqrt, atan, pi
+from math import sqrt, atan, pi, cos, sin
+from numpy import array, dot
 
 
 class Controller:
@@ -20,7 +21,7 @@ class Controller:
                 act_data = data
                 break
         drc = act_data[-1]
-        vel = act_data[-2]
+        vel = act_data[-3]
         if not t > self.stop_time:
             if t > self.car.start_time:
                 # try:
@@ -41,7 +42,11 @@ class Controller:
                     x_delta = act_data[2] - x
                     y_delta = act_data[3] - y
                     distance = sqrt(x_delta**2 + y_delta**2)
-                    index += int((distance/vel)/lib.dt)
+                    index += 1
+                    # try:
+                    #     index += int((distance/vel)/lib.dt)
+                    # except OverflowError and ZeroDivisionError:
+                    #     index += 1
                     next_point = self.path[index]
                 except IndexError:
                     next_point = point = self.path[-1]
@@ -50,7 +55,6 @@ class Controller:
                     y = point.imag
                     x_delta = act_data[2] - x
                     y_delta = act_data[3] - y
-
 
             else:
                 x, y = self.car.spawn
@@ -62,36 +66,40 @@ class Controller:
             x_next = next_point.real
             y_next = next_point.imag
 
+            x_act = act_data[2]+0.5*cos(drc)*self.car.wheelbase
+            y_act = act_data[3]+0.5*sin(drc)*self.car.wheelbase
+
             a = y - y_next
             b = x_next - x
             c = x * y_next - x_next * y
-
 
             vx = (x_delta - self.last_x_delta) / lib.ct
             vy = (y_delta - self.last_y_delta) / lib.ct
 
             try:
-                crosstrack_error = (a * act_data[2] + b*act_data[3] + c) / (sqrt(a**2 + b**2))
+                crosstrack_error = (a * x_act + b*y_act + c) / (sqrt(a**2 + b**2))
 
                 steering = self.lateral_control(t, a, b, crosstrack_error, drc, vel)
             except ZeroDivisionError:
                 steering = 0
 
             distance = sqrt(x_delta**2 + y_delta**2)
+            #self.car.distances.append(dot(array([cos(drc), sin(drc)]), array([x_delta, y_delta]))/distance)
+
             self.car.distances.append(distance)
 
             decider = (planned_direction - drc + pi/2) % (2*pi)
 
-            throttle = int(decider/pi) == 0
-
-            # ax = lib.k_p * x_delta + lib.k_d * vx
-            # ay = lib.k_p * y_delta + lib.k_d * vy
             try:
                 vel_c = (self.car.distances[-1] - self.car.distances[-2]) / lib.ct
             except IndexError:
                 vel_c = 0
 
             acc = lib.k_p * distance + lib.k_d * vel_c
+            throttle = int(decider/pi) == 0
+            # if not int(decider/pi) == 0:
+            #     acc = -acc
+            self.car.debugging4.append(throttle)
 
             self.last_x_delta = x_delta
             self.last_y_delta = y_delta
@@ -102,7 +110,7 @@ class Controller:
         return acc, steering
 
     def lateral_control(self, t, a, b, error, drc, vel):
-        k = 0.7  # controller parameter
+        k = 1.2   # controller parameter
         cross_track_steering = atan(k * error / vel)  # Note: Difference in Implementation, instead of v --> k_v + v
         heading_error = atan(-a / b) - drc
         return cross_track_steering + heading_error

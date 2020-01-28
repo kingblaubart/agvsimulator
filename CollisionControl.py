@@ -1,7 +1,6 @@
 from collision import *
 from math import sqrt
 import God
-from newCarFree2D import CarFree2D
 import Lib as lib
 import numpy as np
 
@@ -26,7 +25,7 @@ class CollisionControl:
         self.cars = god.real_cars
         self.make_poly()
 
-    def make_car_poly_old(self, car: CarFree2D, t):
+    def make_car_poly_old(self, car, t):
         pos = 0
         for i in range(len(self.coll_cars)):
             try:
@@ -40,7 +39,7 @@ class CollisionControl:
                 raise Exception('Time did not match')
         return Concave_Poly(pos, [Vector(0, 0), Vector(car.length, 0), Vector(car.length, car.width), Vector(0, car.width)])
 
-    def make_car_poly(self, car: CarFree2D):
+    def make_car_poly(self, car):
         pos = 0
         angle = 0
         for status in self.list:

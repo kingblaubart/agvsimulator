@@ -1,4 +1,4 @@
-from newCarFree2D import CarFree2D
+from CarFree2D import CarFree2D
 from Event import Event
 import Lib as lib
 import numpy as np
@@ -105,11 +105,11 @@ class EventQueue:
             lib.carList.append(car_copy)
 
     # gives the cars their acc and dir values
-    def car_steering(self, t, car: CarFree2D, acc_x, acc_y,  stop, tag):
+    def car_steering(self, t, car, acc_x, acc_y,  stop, tag):
         car.steer(t, acc_x, acc_y, stop)
 
-    def car_steering_ackermann(self, t, car: CarFree2D, acc, drc, stop, tag):
-        car.steer_ackermann(t, acc, drc)
+    def car_steering_ackermann(self, t, car, acc, drc, stop, tag):
+        car.steer(t, acc, drc)
 
     # appends the current state to the library, its entries are needed to
     # display the car in the animation
@@ -142,7 +142,7 @@ class EventQueue:
 
     def car_control(self, t, car, a, angle):
         return
-        car.control_ackermann(a, angle)
+        car.control(a, angle)
 
     def correct_controls(self, t, car, ax, ay):
         try:

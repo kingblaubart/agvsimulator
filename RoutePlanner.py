@@ -80,14 +80,12 @@ class RoutePlanner:
         spawn_y = new_points[0].y
         if car.start_dir == "north":
             spawn_x = spawn_x + 0.25 * self.spacing[0]
+        elif car.start_dir == "east":
+            spawn_y = spawn_y - 0.25 * self.spacing[1]
+        elif car.start_dir == "south":
+            spawn_x = spawn_x - 0.25 * self.spacing[0]
         else:
-            if car.start_dir == "east":
-                spawn_y = spawn_y - 0.25 * self.spacing[1]
-            else:
-                if car.start_dir == "south":
-                    spawn_x = spawn_x - 0.25 * self.spacing[0]
-                else:
-                    spawn_y = spawn_y + 0.25 * self.spacing[1]
+            spawn_y = spawn_y + 0.25 * self.spacing[1]
         new_points[0] = Point(spawn_x, spawn_y)
         car.spawn = [spawn_x, spawn_y]
         car.set_first_position()

@@ -11,14 +11,15 @@
       "pt_comment": "PathPlanner sampling rate",
       "latency": 0.02,
       "errorrate": 0.05,
-      "k_p": 0,
-      "k_d": 0,
+      "k_p": 3,
+      "k_d": 2,
       "Layout": false,
-      "Path": true
+      "Path": true,
+      "holonom": false
     },
   "SpaceFree2D":
     {
-      "px_width": 500,
+      "px_width": 1500,
       "fps": 50
     },
    "Layout":

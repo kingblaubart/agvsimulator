@@ -14,18 +14,11 @@ def start_simulation():
     g.file_read()
     g.simulate()
 
-    for data in lib.data:
-        time, obj, x, y, v, dir = data
-        # print(f"{float(time):< 6.4}    {obj:<10}     {float(x):< 6.4}     {float(y):< 10.3}      {float(dir): < 3.3}")
+    # for data in lib.data:
+    #     time, obj, x, y, v, dir = data
+    #     # print(f"{float(time):< 6.4}    {obj:<10}     {float(x):< 6.4}     {float(y):< 10.3}      {float(dir): < 3.3}")
 
     t = np.asarray(g.cars[0].planner.t_equi_in_t)
-
-    for car in g.cars:
-        # plt.plot(car.debugging1)
-        # plt.plot(car.debugging2)
-        # plt.show()
-        plt.plot(car.position_x, car.position_y)
-    plt.show()
 
     for car in g.cars:
         plt.plot(car.distances)

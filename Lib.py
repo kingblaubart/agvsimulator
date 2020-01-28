@@ -21,6 +21,7 @@ k_p = None
 k_d = None
 last_timestamp = None
 statespace = None
+holonom = None
 
 
 # some setter methods
@@ -87,6 +88,11 @@ def set_k_d(kd):
 def set_statespace(ss):
     global statespace
     statespace = ss
+
+
+def set_holonom(h):
+    global holonom
+    holonom = h
 
 
 # some methods used my multiple classes
