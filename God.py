@@ -38,14 +38,10 @@ class God:
         self.obstacles = []
         self.colldet = self.parameters["CollisionControl"]["activated"]
         self.collisions = [10000, 10000, 10000]
-        self.latency = parameters["God"]["latency"]
-        self.errorrate = parameters["God"]["errorrate"]
         # INSERT IN LIBRARY
         lib.set_coll_det_freq(parameters["CollisionControl"]["collision_detection_frequency"])
         eq = EventQueue(self)
         lib.set_eventqueue(eq)
-        lib.set_latency(self.latency)
-        lib.set_errorate(self.errorrate)
         lib.set_k_d(parameters["God"]["k_d"])
         lib.set_k_p(parameters["God"]["k_p"])
         lib.set_pt(parameters["God"]["pt"])
@@ -111,13 +107,15 @@ class God:
             max_latency = car["max_latency"]
             start_time = car["start_time"]
             errorrate = car["errorrate"]
+            segment_length = car['segment_length']
+
             if lib.holonom:
                 car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel,
                                 max_acc, color, min_latency, max_latency, errorrate)
             else:
                 max_steering_angle = float(car["max_steering_angle"])
                 car = CarAckermann(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle,
-                                   max_vel,max_acc, max_steering_angle, color, min_latency, max_latency, errorrate)
+                                   max_vel,max_acc, max_steering_angle, color, min_latency, max_latency, errorrate, segment_length)
             car.destination = dest
             self.cars.append(car)
             lib.carList.append(car)

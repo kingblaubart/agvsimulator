@@ -93,23 +93,21 @@ class EventQueue:
         # if the latency differs from 0 a copy of the car is created which has no
         # latency and is displayed transparently
 
-        if not lib.latency == 0:
-            car_copy = copy.deepcopy(car)
-            car_copy.ghost = True
-            car_copy.id = str(car_copy.id) + ' Ghost'
+        car_copy = copy.deepcopy(car)
+        car_copy.ghost = True
+        car_copy.id = str(car_copy.id) + ' Ghost'
 
-            # command to generate event queue entries, not needed anymore?
-            # car_copy.make_controls()
-
-            self.god.cars.append(car_copy)
-            lib.carList.append(car_copy)
+        self.god.cars.append(car_copy)
+        lib.carList.append(car_copy)
 
     # gives the cars their acc and dir values
     def car_steering(self, t, car, acc_x, acc_y,  stop, tag):
+        return
         car.steer(t, acc_x, acc_y, stop)
 
-    def car_steering_ackermann(self, t, car, acc, drc, stop, tag):
-        car.steer(t, acc, drc)
+    # gives the cars their acc and dir values
+    def car_steering_ackermann(self, t, car, acc, tag):
+        car.steer(t, acc, 0)
 
     # appends the current state to the library, its entries are needed to
     # display the car in the animation
@@ -127,9 +125,11 @@ class EventQueue:
     def control(self, t):
         for car in lib.carList:
             if not car.ghost:
-                r = random.randint(1, 100) / 100
+                # control car
                 a, angle = car.controller.control(t)
-                if r > car.errorrate:
+                # controlled steering angle gets applied immediately
+                car.steering_control = angle
+                if car.channel.transmit():
                     ev = Event(t, car, (t, car, lambda: lib.eventqueue.car_control, (t, car, a, angle)),
                                lambda: lib.eventqueue.store_command)
                     if t <= car.stop_time:
@@ -137,28 +137,21 @@ class EventQueue:
                     self.successes.append([t, car.id])
                     self.log.write(str(t)+' Car '+str(car.id)+' OK\n')
                 else:
+                    if car.channel.check_for_emergency():
+                        print('BRAKING')
+                        car.brake(t)
                     self.errors.append([t, car.id])
                     self.log.write(str(t)+' Car '+str(car.id)+' ERROR\n')
 
     def car_control(self, t, car, a, angle):
-        return
-        car.control(a, angle)
+        car.control(a)
+        #car.steer(t, a, angle)
 
-    def correct_controls(self, t, car, ax, ay):
-        try:
-            for ev in self.events:
-                if ev.object == car:
-                    t, car, acc_x, acc_y, stop, tag = ev.parameters
-                    if tag == 'steering':
-                        acc_x += ax
-                        acc_y += ay
-
-                        # direction = tan(acc_y / acc_x)
-
-                        ev.parameters = (t, car, acc_x, acc_y, stop, 'control')
-                        break
-        except ValueError:
-            pass
+    def update_path(self, t, car):
+        r = random.randint(0, 3)
+        if r == 13:
+            car.brake(t)
+        car.update_path()
 
     # the stored command gets applied
     def apply_control(self, func, parameters):

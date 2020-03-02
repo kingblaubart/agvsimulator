@@ -9,11 +9,10 @@ dt = None
 ct = None
 pt = None
 fps = None
-latency = None
-errorrate = None
 carList = []
 data = []
 vis_data = []
+debug_list = []
 collision = None
 coll_det_freq = None
 car_count = None
@@ -58,16 +57,6 @@ def set_collision(c):
 def set_coll_det_freq(cdf):
     global coll_det_freq
     coll_det_freq = cdf
-
-
-def set_latency(l):
-    global latency
-    latency = l
-
-
-def set_errorate(e):
-    global errorrate
-    errorrate = e
 
 
 def set_carcount(c):

@@ -5,18 +5,20 @@ from newPathPlanner import PathPlanner
 from ControllerAckermann import Controller
 import numpy as np
 from Event import Event
+from Channel import Channel
 import Lib as lib
 
 
 class CarAckermann:
     def __init__(self, id: int, spawn_x, spawn_y, start, start_dir, end_dir, size_x, size_y, angle, max_vel, max_acc,
-                 max_steering_angle, color, min_latency, max_latency, errorrate):
+                 max_steering_angle, color, min_latency, max_latency, errorrate, seg_len):
         self.ghost = False
         # PHYSICAL PROPERTIES
         self.color = color                          # color code
         self.id = id                                # unique car id
         self.spawn = [spawn_x, spawn_y]             # spawnpoint
         self.destination = 0
+
         self.position_x = [spawn_x]                 # not used for EventQueue
         self.position_y = [spawn_y]
         self.direction = start_dir                  # direction of the car
@@ -34,20 +36,18 @@ class CarAckermann:
         self.wheelbase = self.length - 0.5 * self.width
         self.rearbase = 0.5*self.width
         self.wheelangles = [0, 0]
+        self.stored_a = []
+
         # VELOCITY
         self.last_velocity = 0
-        self.last_velocity_x = 0                      # velocity after last control input
-        self.last_velocity_y = 0
         self.velocity = []                          # not used for EventQueue
         self.max_velocity = max_vel                 # absolute limit of velocity
         # ACCELERATION
         self.acceleration = 0                       # acceleration given by last control input
-        self.acceleration_y = 0
-        self.acceleration_x = 0
         self.max_acceleration = max_acc             # absolute limit of acceleration
-        self.acceleration_x_c = 0
-        self.acceleration_y_c = 0
         self.acceleration_controller = 0
+        self.acc_debug = []
+        self.emergency_brake = False
         # STEERING
         self.steering = 0                           # steering angle given by last control input
         self.direction = 0                          # direction angle given by last control input
@@ -56,42 +56,30 @@ class CarAckermann:
         # PATH
         self.shape = []                             # shape of the planned path (without exact timestamp)
         self.path = Path(self.spawn)                # "shape" with exact timestamp
+        self.path_buffer = []
+        self.segment_length = seg_len               # length of segments (path is divided in segments which are then
+                                                    # sent to the AGV
+        self.last_segment_time = 0                  # start-time of the last received path-segment
         self.waypoints = []                         # list for the given points with the
         self.planner = None
         # CONTROLS
         self.time_last_control = start - lib.dt                  # timestamp of last control input
         self.time_last_update = start - lib.dt                  # timestamp of last given acceleration
         self.time_last_step = start - lib.dt
-        self.stop = False                           # False: car drives, True: car stops (or will stop within the next time (t < ts)
-        self.stop_time = 0                          # timestamp of stop (velocitiy 0 reached)
+        self.stop_time = 0                          # timestamp of stop (velocity 0 reached)
         self.controller = Controller(self, lib.k_p, lib.k_d)
-        # DEBUGGING
-        self.debugging1 = []
-        self.debugging2 = []
-        self.debugging3 = []
-        self.debugging4 = []
-        self.dc_pos = []
         dim = len(lib.statespace.A)
-        #self.old_state = [np.zeros(dim).reshape(-1, 1), np.zeros(dim).reshape(-1, 1)]
         self.old_state = np.zeros(dim).reshape(-1, 1)
-        #self.state = [np.zeros(dim), np.zeros(dim)]
         self.state = None
         self.full_arc = 0
-        self.counter = 0
         self.min_dist = self.make_min_dist()
         self.distances = []
-
-    # GETTER
-    # currenttly not used
-    def get_speed(self, absolute):  # absolute is boolean - true returns absolute value, false vectorial speed
-        if absolute:
-            return sqrt(self.velocity[0] * self.velocity[0] + self.velocity[1] * self.velocity[1])
-        else:
-            return self.velocity
-
-    # currenttly not used
-    def get_acceleration(self):
-        return self.acceleration
+        self.lat_distances = []
+        #CHANNEL
+        self.channel = Channel(self.errorrate)
+        # DEBUGGING
+        self.debugging = []
+        self.arc_debug = []
 
     def set_first_position(self):
         self.position_x = [self.spawn[0]]
@@ -105,6 +93,7 @@ class CarAckermann:
         self.waypoints.append(p)
         # raise Exception('The point (' + str(p.x) + '|' + str(p.y) + ') is too far away. Skipped.')
 
+    # used for collision control
     def make_min_dist(self):
         edges = [[self.spawn[0] - self.length / 2, self.spawn[1] - self.width / 2],
                  [self.spawn[0] + self.length / 2, self.spawn[1] - self.width / 2],
@@ -121,99 +110,82 @@ class CarAckermann:
     def create_spline(self):
         self.planner = PathPlanner(self, self.max_velocity, self.max_acceleration)
         self.planner.make_path(self.path.points)
-        self.write_path()
-        if not self.ghost:
-            self.make_controls()
-
-        self.planner.t_equi_in_t = (np.array(self.planner.t_equi_in_t) + self.start_time).tolist()
         self.stop_time = self.planner.t_equi_in_t[-1]
+        self.write_path()
+        self.planner.t_equi_in_t = (np.array(self.planner.t_equi_in_t) + self.start_time).tolist()
+        self.update_path()
 
     def write_path(self):
         for point in self.planner.path_from_v_equi_in_t:
             self.shape.append([np.real(point), np.imag(point)])
         pass
 
-    def test_dc_motor(self, ax, ay):
-
-        self.acceleration_x = ax
-        self.acceleration_y = ay
-        self.counter += 1
-        # x direction:
-        self.state[0] = lib.statespace.A.A.dot(self.old_state[0]) + lib.statespace.B.A.dot(ax)
-        x = lib.statespace.C.A.dot(self.old_state[0]) + lib.statespace.D.A.dot(ax)
-        # y direction:
-        self.state[1] = lib.statespace.A.A.dot(self.old_state[1]) + lib.statespace.B.A.dot(ay)
-        y = lib.statespace.C.A.dot(self.old_state[1]) + lib.statespace.D.A.dot(ay)
-
-        self.old_state = self.state
-        return x[0][0], y[0][0]
-
     def steer(self, t, a, angle):
-        angle = (angle + self.steering_control) % (2 * np.pi)
-        if angle > pi:
-            angle = angle - 2*pi
-        angle = min(self.max_steering_angle, angle)
-        angle = max(-self.max_steering_angle, angle)
-        a += self.acceleration_controller
-        start_angle = self.direction - np.pi/2
-        pos = np.array(self.last_position) - np.array([0, 0.5*cos(self.direction) * self.wheelbase])
-        self.state = lib.statespace.A.dot(self.old_state) + lib.statespace.B.dot(a)
-        new_arc = (lib.statespace.C.dot(self.old_state) + lib.statespace.D.dot(a))[0, 0]
-        arc = new_arc - self.full_arc
-        self.full_arc = new_arc
-        self.old_state = self.state
-        self.last_velocity = arc / lib.pt
-        try:
-            radius = self.wheelbase / tan(angle)
-            self.wheelangles = [atan2(self.wheelbase, radius - 0.5 * self.rearbase), atan2(self.wheelbase, radius + 0.5*self.rearbase)]
-            phi = arc / radius
-            center_of_turning_cycle = np.array(pos) - np.array([radius, 0])
-            point = np.array([radius * cos(phi), radius * sin(phi)])
+        if self.emergency_brake:
+            a = -self.max_acceleration          # braking as fast as possible
+        else:
+            a += self.acceleration_controller   # controlling the current acceleration
+        self.acc_debug.append(a)
+        angle = (angle + self.steering_control)
+        self.debugging.append(angle)
+        # angle = min(self.max_steering_angle, angle)
+        # angle = max(-self.max_steering_angle, angle)
+        if (self.last_velocity <= 0) & self.emergency_brake:
+            self.stop_time = t
 
-            point = point + center_of_turning_cycle - pos
+        if t < self.stop_time:
+            start_angle = self.direction - np.pi/2
+            pos = np.array(self.last_position) - np.array([0, 0.5*cos(self.direction) * self.wheelbase])
+            self.state = lib.statespace.A.dot(self.old_state) + lib.statespace.B.dot(a)
+            new_arc = (lib.statespace.C.dot(self.old_state) + lib.statespace.D.dot(a))[0, 0]
+            arc = new_arc - self.full_arc
+            self.full_arc = new_arc
+            self.old_state = self.state
+            self.last_velocity = arc / lib.pt
+            self.velocity.append(self.last_velocity)
+            self.arc_debug.append(arc)
 
-            point = np.dot(np.array([[np.cos(start_angle), -np.sin(start_angle)], [np.sin(start_angle), np.cos(start_angle)]]), point.reshape(-1, 1))
-            point = point + np.array(pos).reshape(-1, 1)
-            self.direction = (phi + self.direction) % (2*pi)
-            self.last_position = (point.reshape(1, -1)+np.array([0, 0.5*cos(self.direction) * self.wheelbase])).tolist()[0]
+            try:
+                radius = self.wheelbase / tan(angle)
+                self.wheelangles = [atan2(self.wheelbase, radius - 0.5 * self.rearbase), atan2(self.wheelbase, radius + 0.5*self.rearbase)]
+                phi = arc / radius
+                center_of_turning_cycle = np.array(pos) - np.array([radius, 0])
+                point = np.array([radius * cos(phi), radius * sin(phi)])
 
-            x = self.last_position[0]
-            y = self.last_position[1]
-            self.position_x.append(x)
-            self.position_y.append(y)
+                point = point + center_of_turning_cycle - pos
 
-            self.debugging1.append(arc)
-            self.debugging2.append(phi)
-            self.debugging3.append(self.direction)
+                point = np.dot(np.array([[np.cos(start_angle), -np.sin(start_angle)], [np.sin(start_angle), np.cos(start_angle)]]), point.reshape(-1, 1))
+                point = point + np.array(pos).reshape(-1, 1)
+                self.direction = (phi + self.direction) % (2*pi)
+                self.last_position = (point.reshape(1, -1)+np.array([0, 0.5*cos(self.direction) * self.wheelbase])).tolist()[0]
 
-        except ZeroDivisionError:
-            x = self.last_position[0] + arc * cos(self.direction)
-            y = self.last_position[1] + arc * sin(self.direction)
-            self.last_position = [x, y]
-            self.position_x.append(x)
-            self.position_y.append(y)
-            self.wheelangles = [0, 0]
+                x = self.last_position[0]
+                y = self.last_position[1]
+                self.position_x.append(x)
+                self.position_y.append(y)
 
-    def control(self, acc, drc):
-        self.acceleration_controller = -acc
-        self.steering_control = drc
+            # in case of a straight movement:
+            except ZeroDivisionError:
+                x = self.last_position[0] + arc * cos(self.direction)
+                y = self.last_position[1] + arc * sin(self.direction)
+                self.last_position = [x, y]
+                self.position_x.append(x)
+                self.position_y.append(y)
+                self.wheelangles = [0, 0]
+
+    def control(self, acc):
+        self.acceleration_controller = acc
 
     # CONVERTING CONTROL_PREP INTO CONTROLS FOR CAR
     # [timestamp, estimated x, estimated y, abs(acceleration), direction to drive]
     def make_controls(self):
-        stop_time = self.planner.t_equi_in_t[-1]
-        stop = False
-        t = self.start_time
-        for i in range(len(self.planner.a_from_v_equi_in_t)):
-            acc = self.planner.a_from_v_equi_in_t[i]
-            drc = self.planner.delta[i]
-            if acc == self.planner.a_from_v_equi_in_t[-1]:
-                stop = True
-            ev = Event(t, self, (t, self, acc, drc, stop, "steering"), lambda: lib.eventqueue.car_steering_ackermann)
+        t = self.last_segment_time
+
+        for i in range(len(self.stored_a)):
+            acc = self.stored_a[i]
+            ev = Event(t, self, (t, self, acc, "steering"), lambda: lib.eventqueue.car_steering_ackermann)
             lib.eventqueue.add_event(ev)
             t += lib.pt
-        # fills the self.controls list with acceleration values
-        self.controller.set_path(self.planner.path_from_v_equi_in_t)
 
     # used with EventQueue
     # returns position of the car at specific time t
@@ -240,12 +212,6 @@ class CarAckermann:
             y = point.imag
 
         else:
-            if not self.stop:
-                dt = (t - self.time_last_control)
-
-            else:
-                dt = (self.stop_time - self.time_last_control)
-
             x = self.last_position[0]
             y = self.last_position[1]
 
@@ -258,3 +224,19 @@ class CarAckermann:
         if t == 0:
             dir = self.start_direction
         return [t, self.id, round(x, 4), round(y, 4), vel, wheel_angles, dir]
+
+    def update_path(self):
+        print('update', self.last_segment_time)
+        self.stored_a = self.planner.a_from_v_equi_in_t[int(self.last_segment_time/lib.pt): int((self.last_segment_time + self.segment_length) / lib.pt)]
+        # fills the self.controls list with acceleration values
+        self.controller.set_path(self.planner.path_from_v_equi_in_t)
+        self.make_controls()
+        t = self.last_segment_time
+        self.last_segment_time += self.segment_length
+
+        if self.last_segment_time < self.stop_time:
+            ev = Event(self.last_segment_time - self.segment_length/3, self, (t, self,), lambda: lib.eventqueue.update_path)
+            lib.eventqueue.add_event(ev)
+
+    def brake(self, t):
+        self.emergency_brake = True

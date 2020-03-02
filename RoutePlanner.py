@@ -124,7 +124,7 @@ class RoutePlanner:
                 else:
                     entry = Point(end.x - self.spacing[0], end.y)
                     end_cross = Point(entry.x, entry.y + np.sign(start.y - end.y) * self.spacing[1])
-        # print("points", [start.x, start.y], [ext.x, ext.y], [start_cross.x, start_cross.y], [end_cross.x, end_cross.y], [entry.x, entry.y], [end.x, end.y])
+
         return [start, ext, start_cross, end_cross, entry, end]
 
     def make_curve(self, point, prev_point, next_point, car):
@@ -133,9 +133,6 @@ class RoutePlanner:
         prev_vec = point - prev_point
         next_point = np.array([next_point.x, next_point.y])
         next_vec = next_point - point
-
-        # start = point + np.sign(prev_point - point) * 0.25 * self.spacing
-        # end = point + np.sign(next_point - point) * 0.25 * self.spacing
 
         angle = np.sign(np.cross(prev_vec, next_vec))
         if angle == -1:
