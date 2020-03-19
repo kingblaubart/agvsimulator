@@ -15,10 +15,10 @@ import os as os
 class SpaceFree2DOpenGL(pyglet.window.Window):
 
     def __init__(self, g: God):
-        self.height1 = int(g.size[1])
-        self.width1 = int(g.size[0])
-        self.px_width = int(g.parameters["SpaceFree2D"]["px_width"])
-        self.px_height = int(self.height1 / self.width1 * self.px_width)
+        self.height1 = round(g.size[1])
+        self.width1 = round(g.size[0])
+        self.px_width = round(g.parameters["SpaceFree2D"]["px_width"])
+        self.px_height = round(self.height1 / self.width1 * self.px_width)
         self.pxm = self.px_width / self.width1  # pixel per meter
         self.g = g
         self.car_models = []
@@ -315,40 +315,40 @@ class SpaceFree2DOpenGL(pyglet.window.Window):
                 # Debugging
                 ############################################################
 
-                # if not car.ghost:
-                #     if self.timestamp > 0.02:
-                #         # Reference point for lateral controlling
-                #         self.circle(self.debugging[int(car.id)][7].real * self.pxm, self.debugging[int(car.id)][7].imag * self.pxm, 2, 1)
-                #         # Tangent on reference point for lateral controlling
-                #         line = complex(-self.debugging[int(car.id)][5], self.debugging[int(car.id)][4])
-                #         # Refrence point for longitudinal controlling
-                #         point = self.debugging[int(car.id)][7]
-                #         # Position of car
-                #         pos = self.debugging[int(car.id)][2]
-                #         line_end = (point + 100 * line) * self.pxm
-                #         line_start = (point - 100 * line) * self.pxm
+                #if not car.ghost:
+                 #   if self.timestamp > 0.02:
+                  #      # Reference point for lateral controlling
+                   #     #self.circle(self.debugging[int(car.id)][7].real * self.pxm, self.debugging[int(car.id)][7].imag * self.pxm, 2, 1)
+                    #    # Tangent on reference point for lateral controlling
+                     #   line = complex(-self.debugging[int(car.id)][5], self.debugging[int(car.id)][4])
+                      #  # Refrence point for longitudinal controlling
+                       # point = self.debugging[int(car.id)][7]
+                        # Position of car
+                       # pos = self.debugging[int(car.id)][2]
+                       # line_end = (point + 100 * line) * self.pxm
+                       # line_start = (point - 100 * line) * self.pxm
                 #
-                #         glBegin(GL_LINES)
-                #         glVertex2f(line_start.real, line_start.imag)
-                #         glVertex2f(line_end.real, line_end.imag)
-                #         glEnd()
-                #         heading_end = (pos + 2 * complex(cos(angle), sin(angle))) * self.pxm
-                #         heading_start = pos * self.pxm
-                #         glBegin(GL_LINES)
-                #         glVertex2f(heading_start.real, heading_start.imag)
-                #         glVertex2f(heading_end.real, heading_end.imag)
-                #         glEnd()
-                #         steering_angle = self.debugging[int(car.id)][3] + angle
-                #         steering_end = (pos + 2 * complex(cos(steering_angle), sin(steering_angle))) * self.pxm
+                 #       glBegin(GL_LINES)
+                  #      glVertex2f(line_start.real, line_start.imag)
+                   #     glVertex2f(line_end.real, line_end.imag)
+                    #    glEnd()
+                     #   heading_end = (pos + 2 * complex(cos(angle), sin(angle))) * self.pxm
+                      #  heading_start = pos * self.pxm
+                      #  glBegin(GL_LINES)
+                       # glVertex2f(heading_start.real, heading_start.imag)
+                       # glVertex2f(heading_end.real, heading_end.imag)
+                       # glEnd()
+                       # steering_angle = self.debugging[int(car.id)][3] + angle
+                       # steering_end = (pos + 2 * complex(cos(steering_angle), sin(steering_angle))) * self.pxm
                 #         e = self.debugging[int(car.id)][8]
                 #         if e > 0:
                 #             glColor4f(1, 0, 0, 1)
                 #         else:
                 #             glColor4f(0, 1, 0, 1)
-                #         glBegin(GL_LINES)
-                #         glVertex2f(heading_start.real, heading_start.imag)
-                #         glVertex2f(steering_end.real, steering_end.imag)
-                #         glEnd()
+                        #glBegin(GL_LINES)
+                        #glVertex2f(heading_start.real, heading_start.imag)
+                        #glVertex2f(steering_end.real, steering_end.imag)
+                        #glEnd()
 
             label = pyglet.text.Label(str(self.timestamp),
                                       font_name='Times New Roman',
@@ -358,9 +358,10 @@ class SpaceFree2DOpenGL(pyglet.window.Window):
             label.draw()
 
             # while animating save current frame
-            # if self.timestamp <= self.g.last_timestamp:
-            #     pyglet.image.get_buffer_manager().get_color_buffer().save('video/' + str(self.counter) + '.png')
-            #     self.counter += 1
+
+            if self.timestamp <= self.g.last_timestamp:
+                pyglet.image.get_buffer_manager().get_color_buffer().save('video/' + str(self.counter) + '.png')
+                self.counter += 1
             # t2 = time.time()
             # self.time.append(t2-t1)
             # self.currentfps.append(clock.get_fps())
@@ -372,7 +373,7 @@ class SpaceFree2DOpenGL(pyglet.window.Window):
                               anchor_x='left', anchor_y='bottom').draw()
         else:
             self.clear()
-            self.animSprite.draw()
+            #self.animSprite.draw()
 
     def on_mouse_press(self, x, y, button, modifiers):
         print(round(x / self.pxm, 2), round(y/self.pxm, 2))
@@ -542,7 +543,7 @@ class SpaceFree2DOpenGL(pyglet.window.Window):
         if self.timestamp > self.stop:
             pyglet.clock.unschedule(self.update)
             im = 0
-            writer = imageio.get_writer('animation.gif', fps=self.fps)
+            writer = imageio.get_writer('animation.mp4', fps=self.fps)
             for i in range(self.counter):
                 im = imageio.imread('video/' + str(i) + '.png')
                 writer.append_data(im)

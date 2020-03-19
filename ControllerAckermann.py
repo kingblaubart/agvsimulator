@@ -1,6 +1,7 @@
 import Lib as lib
 from math import sqrt, atan, pi, cos, sin, tanh
 import numpy as np
+import cmath
 
 
 class Controller:
@@ -17,8 +18,13 @@ class Controller:
         self.acc = []
         self.throttle = []
         self.vel = []
+        self.debug = []
+        self.distance_x = []
+        self.distance_y = []
 
     def control(self, t):
+        t = round(t, 7)
+
         act_data = None
         for data in lib.data[::-1]:
             if self.car.id == data[1]:
@@ -26,14 +32,19 @@ class Controller:
                 break
         drc = act_data[-1]
         vel = act_data[-3]
+        # print(t, act_data[0], lib.last_get_data)
         if not t > self.stop_time:
             if t > self.car.start_time:
                 try:
-                    index = int((t - self.car.start_time) / lib.pt)
+                    index = round((t - self.car.start_time) / lib.pt)
+
                     planned_velocity = self.car.planner.v_equi_in_t[index]
+                    t1 = self.car.planner.t_equi_in_t[index]
+                    self.debug.append(round(t-t1, 7))
                     point = self.path[index]
 
                 except IndexError:
+                    print("indexerror", t)
                     planned_velocity = self.car.planner.v_equi_in_t[-1]
                     point = self.path[-1]
             else:
@@ -95,13 +106,14 @@ class Controller:
             # Position Controlling
             #####################################################################################
             # distance = sqrt((y-act_data[3])**2 + (x-act_data[2])**2)
-            dist_vec = complex(x, y) - complex(act_data[2], act_data[3])
-
-            distance = np.linalg.norm(dist_vec)
+            dist_vec = complex(complex(x, y) - complex(act_data[2], act_data[3]))
+            self.distance_x.append(x)
+            self.distance_y.append(act_data[2])
+            distance = np.absolute(dist_vec)
             self.car.distances.append(distance)
 
             # decider = (planned_direction - drc + pi/2) % (2*pi)
-            decider = (np.angle(dist_vec) - drc + pi/2) % (2 * pi)
+            decider = (cmath.phase(dist_vec) - drc + pi/2) % (2 * pi)
 
             throttle = int(decider/pi) == 0
             self.throttle.append(throttle)
@@ -117,14 +129,16 @@ class Controller:
             acc = max(min(self.k_p * distance + self.k_d * vel_c, self.car.max_acceleration), -self.car.max_acceleration)
             #acc = self.k_p * distance + self.k_d * vel_c
             acc = acc * (throttle - 0.5) * 2
+            if t != act_data[0]:
+                pass
 
+                # print('dif', round(t / lib.ct), t, act_data[0], lib.last_get_data)
             # correct angle
             if steering > 0:
                 steering = steering % (2*pi)
             else:
                 steering = steering % (-2*pi)
             if steering > pi:
-
                 steering = 2 * pi - steering
             if steering < -pi:
                 steering = 2*pi + steering
@@ -152,7 +166,7 @@ class Controller:
         return acc, steering
 
     def lateral_control(self, t, a, b, error, drc, vel):
-        k = 30   # controller parameter
+        k = 8  # controller parameter
         if not vel == 0:
             cross_track_steering = atan(k * error / vel)  # Note: Difference in Implementation, instead of v --> k_v + v
         else:
@@ -162,7 +176,7 @@ class Controller:
         return cross_track_steering + heading_error
 
     def set_path(self, path):
-        if self.path[0] == None:
+        if self.path[0] is None:
             self.path = path
         else:
             np.append(self.path, path)

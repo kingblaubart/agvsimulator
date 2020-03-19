@@ -25,12 +25,11 @@ def start_simulation():
 
 
 def plots(g):
-    t = g.cars[0].planner.t_equi_in_t
+    #t = g.cars[0].planner.t_equi_in_t
     plt.style.use('seaborn')
-    del t[-1]
-    del t[-1]
+
     fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(nrows=5, ncols=1)
-    t = np.asarray(t)
+
     for car in g.cars:
         if not car.ghost:
             ax1.plot(car.lat_distances)
@@ -45,19 +44,26 @@ def plots(g):
     ax2.set_ylabel('Meter')
     for car in g.cars:
         if not car.ghost:
-            ax3.plot(car.velocity)
-    ax3.set_title('Acceleration')
+            ax3.plot(car.controller.vel)
+    ax3.set_title('Vel_c')
     ax3.set_xlabel('Time')
-    ax3.set_ylabel('m/s^2')
+    ax3.set_ylabel('m/s')
     plt.tight_layout()
 
     for car in g.cars:
         if not car.ghost:
             ax4.plot(car.planner.a_from_v_equi_in_t)
+    ax4.set_title('Planned Acceleration')
+    ax4.set_xlabel('Time')
+    ax4.set_ylabel('m/s^2')
     for car in g.cars:
         if not car.ghost:
             ax5.plot(car.controller.acc)
+    ax5.set_title('Controller Output')
+    ax5.set_xlabel('Time')
+    ax5.set_ylabel('m/s^2')
     plt.show()
+
 
 
 if __name__ == "__main__":

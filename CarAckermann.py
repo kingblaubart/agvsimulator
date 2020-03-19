@@ -11,7 +11,7 @@ import Lib as lib
 
 class CarAckermann:
     def __init__(self, id: int, spawn_x, spawn_y, start, start_dir, end_dir, size_x, size_y, angle, max_vel, max_acc,
-                 max_steering_angle, color, min_latency, max_latency, errorrate, seg_len):
+                 max_steering_angle, color, min_latency, max_latency, errorrate, seg_len, channel_properties):
         self.ghost = False
         # PHYSICAL PROPERTIES
         self.color = color                          # color code
@@ -76,7 +76,7 @@ class CarAckermann:
         self.distances = []
         self.lat_distances = []
         #CHANNEL
-        self.channel = Channel(self.errorrate)
+        self.channel = Channel(self.errorrate, channel_properties)
         # DEBUGGING
         self.debugging = []
         self.arc_debug = []
@@ -118,7 +118,6 @@ class CarAckermann:
     def write_path(self):
         for point in self.planner.path_from_v_equi_in_t:
             self.shape.append([np.real(point), np.imag(point)])
-        pass
 
     def steer(self, t, a, angle):
         if self.emergency_brake:
@@ -136,11 +135,17 @@ class CarAckermann:
         if t < self.stop_time:
             start_angle = self.direction - np.pi/2
             pos = np.array(self.last_position) - np.array([0, 0.5*cos(self.direction) * self.wheelbase])
+
+            # DC-Motor
             self.state = lib.statespace.A.dot(self.old_state) + lib.statespace.B.dot(a)
             new_arc = (lib.statespace.C.dot(self.old_state) + lib.statespace.D.dot(a))[0, 0]
+
+            # State Transition
+            self.old_state = self.state
+
+            # Saving attributes
             arc = new_arc - self.full_arc
             self.full_arc = new_arc
-            self.old_state = self.state
             self.last_velocity = arc / lib.pt
             self.velocity.append(self.last_velocity)
             self.arc_debug.append(arc)
@@ -176,14 +181,13 @@ class CarAckermann:
     def control(self, acc):
         self.acceleration_controller = acc
 
-    # CONVERTING CONTROL_PREP INTO CONTROLS FOR CAR
-    # [timestamp, estimated x, estimated y, abs(acceleration), direction to drive]
     def make_controls(self):
         t = self.last_segment_time
 
         for i in range(len(self.stored_a)):
             acc = self.stored_a[i]
-            ev = Event(t, self, (t, self, acc, "steering"), lambda: lib.eventqueue.car_steering_ackermann)
+            prio = 1    # didsdsdsdfs
+            ev = Event(t, self, (round(t, 7), self, acc, "steering"), lambda: lib.eventqueue.car_steering_ackermann, prio)
             lib.eventqueue.add_event(ev)
             t += lib.pt
 
@@ -194,7 +198,7 @@ class CarAckermann:
         if self.ghost:
             try:
                 if (t-self.start_time) > 0:
-                    index = int((t - self.start_time) / lib.pt)
+                    index = round((t - self.start_time) / lib.pt)
                 else:
                     index = 0
                 point = self.planner.path_from_v_equi_in_t[index]
@@ -215,6 +219,9 @@ class CarAckermann:
             x = self.last_position[0]
             y = self.last_position[1]
 
+            x = self.position_x[-1]
+            y = self.position_y[-1]
+
             dir = round(self.direction, 5)
 
             vel = self.last_velocity
@@ -223,11 +230,11 @@ class CarAckermann:
 
         if t == 0:
             dir = self.start_direction
-        return [t, self.id, round(x, 4), round(y, 4), vel, wheel_angles, dir]
+        return [t, self.id, round(x, 7), round(y, 7), vel, wheel_angles, dir]
 
     def update_path(self):
         print('update', self.last_segment_time)
-        self.stored_a = self.planner.a_from_v_equi_in_t[int(self.last_segment_time/lib.pt): int((self.last_segment_time + self.segment_length) / lib.pt)]
+        self.stored_a = self.planner.a_from_v_equi_in_t[round(self.last_segment_time/lib.pt): round((self.last_segment_time + self.segment_length) / lib.pt)]
         # fills the self.controls list with acceleration values
         self.controller.set_path(self.planner.path_from_v_equi_in_t)
         self.make_controls()
@@ -239,4 +246,7 @@ class CarAckermann:
             lib.eventqueue.add_event(ev)
 
     def brake(self, t):
+        for e in lib.eventqueue.events:
+            if e.object == self:
+                del e
         self.emergency_brake = True

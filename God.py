@@ -108,6 +108,7 @@ class God:
             start_time = car["start_time"]
             errorrate = car["errorrate"]
             segment_length = car['segment_length']
+            sara_scheme = car['sara_scheme']
 
             if lib.holonom:
                 car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel,
@@ -115,7 +116,7 @@ class God:
             else:
                 max_steering_angle = float(car["max_steering_angle"])
                 car = CarAckermann(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle,
-                                   max_vel,max_acc, max_steering_angle, color, min_latency, max_latency, errorrate, segment_length)
+                                   max_vel, max_acc, max_steering_angle, color, min_latency, max_latency, errorrate, segment_length, sara_scheme)
             car.destination = dest
             self.cars.append(car)
             lib.carList.append(car)
@@ -138,7 +139,7 @@ class God:
                 car_id = int(path_data["car_id"])
                 pos_x = float(path_data["pos_x"])
                 pos_y = float(path_data["pos_y"])
-                if (pos_x < 0 or pos_x > self.size[0] or pos_y < 0 or pos_y > self.size[1]):
+                if pos_x < 0 or pos_x > self.size[0] or pos_y < 0 or pos_y > self.size[1]:
                     raise Exception('The path of a car cannot reach outside the canvas.', car_id, pos_x, pos_y, self.size[0], self.size[1])
 
                 try:
@@ -201,8 +202,10 @@ class God:
 
         agv = ii * control.feedback(dc*pidm, sign=-1)
 
+        # Laplace --> Z
         agvz = control.sample_system(agv, lib.pt, method='zoh')
 
+        # Transferfunction --> StateSpace
         ss = control.tf2ss(agvz)
 
         lib.set_statespace(ss)

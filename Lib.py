@@ -21,6 +21,7 @@ k_d = None
 last_timestamp = None
 statespace = None
 holonom = None
+last_get_data = 0
 
 
 # some setter methods
