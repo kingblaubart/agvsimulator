@@ -1,13 +1,13 @@
-from newCarFree2D import CarFree2D
-from math import ceil
+from CarFree2D import CarFree2D
+from CarAckermann import CarAckermann
 from Obstacles2D import Obstacles2D
 from CollisionControl import CollisionControl
 from EventQueue import EventQueue
 from Event import Event
 import Lib as lib
-from scipy import signal
 import control
 from RoutePlanner import RoutePlanner
+
 
 class God:
 
@@ -38,17 +38,14 @@ class God:
         self.obstacles = []
         self.colldet = self.parameters["CollisionControl"]["activated"]
         self.collisions = [10000, 10000, 10000]
-        self.latency = parameters["God"]["latency"]
-        self.errorrate = parameters["God"]["errorrate"]
         # INSERT IN LIBRARY
         lib.set_coll_det_freq(parameters["CollisionControl"]["collision_detection_frequency"])
         eq = EventQueue(self)
         lib.set_eventqueue(eq)
-        lib.set_latency(self.latency)
-        lib.set_errorate(self.errorrate)
         lib.set_k_d(parameters["God"]["k_d"])
         lib.set_k_p(parameters["God"]["k_p"])
         lib.set_pt(parameters["God"]["pt"])
+        lib.set_holonom(parameters["God"]["holonom"])
         self.eventlist_debug = []
         self.make_statespace()
 
@@ -104,16 +101,22 @@ class God:
             width = float(car["width"])
             max_vel = float(car["max_vel"])
             max_acc = float(car["max_acc"])
-            max_steering_angle = float(car["max_steering_angle"])
             color = str(car["color"])
             dest = car["finish"]
             min_latency = car["min_latency"]
             max_latency = car["max_latency"]
             start_time = car["start_time"]
             errorrate = car["errorrate"]
+            segment_length = car['segment_length']
+            sara_scheme = car['sara_scheme']
 
-            car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel,
-                            max_acc, max_steering_angle, color, min_latency, max_latency, errorrate)
+            if lib.holonom:
+                car = CarFree2D(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle, max_vel,
+                                max_acc, color, min_latency, max_latency, errorrate)
+            else:
+                max_steering_angle = float(car["max_steering_angle"])
+                car = CarAckermann(car_id, spawn_x, spawn_y, start_time, start_dir, end_dir, length, width, angle,
+                                   max_vel, max_acc, max_steering_angle, color, min_latency, max_latency, errorrate, segment_length, sara_scheme)
             car.destination = dest
             self.cars.append(car)
             lib.carList.append(car)
@@ -136,7 +139,7 @@ class God:
                 car_id = int(path_data["car_id"])
                 pos_x = float(path_data["pos_x"])
                 pos_y = float(path_data["pos_y"])
-                if (pos_x < 0 or pos_x > self.size[0] or pos_y < 0 or pos_y > self.size[1]):
+                if pos_x < 0 or pos_x > self.size[0] or pos_y < 0 or pos_y > self.size[1]:
                     raise Exception('The path of a car cannot reach outside the canvas.', car_id, pos_x, pos_y, self.size[0], self.size[1])
 
                 try:
@@ -192,8 +195,6 @@ class God:
         kim = self.parameters["DC-Motor"]["Kim"]
         nm = self.parameters["DC-Motor"]["Nm"]
 
-        ts = lib.pt
-
         dc = control.TransferFunction([0, kmt], [jm * lm, bm * lm + jm * rm, bm * rm + kme * kmt])
         pidm = control.TransferFunction([kpm + kdm * nm, kpm * nm + kim, kim * nm], [1, nm, 0])
 
@@ -201,8 +202,10 @@ class God:
 
         agv = ii * control.feedback(dc*pidm, sign=-1)
 
-        agvz = control.sample_system(agv, ts, method='zoh')
+        # Laplace --> Z
+        agvz = control.sample_system(agv, lib.pt, method='zoh')
 
+        # Transferfunction --> StateSpace
         ss = control.tf2ss(agvz)
 
         lib.set_statespace(ss)

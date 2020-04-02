@@ -39,6 +39,7 @@ class PathPlanner:
         self.directions = None
         self.delta = []
         self.car = car
+        self.P = None
 
     ############################
     ### FUNCTION DEFINITIONS ###
@@ -581,24 +582,24 @@ class PathPlanner:
             self.getQuinticBezierTrajectory(path_points, elongation_factor=1.2, speed_start=0, speed_end=0,
                                             t_delta_equi_in_t=lib.pt, plots_enabled=True)
         self.directions = np.angle(self.velocity_from_v_equi_in_t)
+        if not lib.holonom:
+            shifted_dist = self.s_from_v_equi_in_t
+            shifted_dist = np.insert(shifted_dist, 0, 0)
+            shifted_dist = np.delete(shifted_dist, -1)
+            distances = self.s_from_v_equi_in_t - shifted_dist
+            wheelbase = self.car.wheelbase
 
-        shifted_dist = self.s_from_v_equi_in_t
-        shifted_dist = np.insert(shifted_dist, 0, 0)
-        shifted_dist = np.delete(shifted_dist, -1)
-        distances = self.s_from_v_equi_in_t - shifted_dist
-        wheelbase = self.car.wheelbase
-
-        last_dir = self.car.start_dir
-        for i in range(len(distances)-1):
-            point = self.path_from_v_equi_in_t[i]
-            next_point = self.path_from_v_equi_in_t[i+1]
-            point_dir = np.angle(next_point - point)
-            drc = point_dir - last_dir
-            dist = distances[i]
-            self.delta.append(atan((2*wheelbase*sin(drc))/dist))
-            last_dir = (last_dir + 2*drc) % (2*pi)
-        self.delta.append(0)
-
+            # last_dir = self.car.start_dir
+            # for i in range(len(distances)-1):
+            #     point = self.path_from_v_equi_in_t[i]
+            #     next_point = self.path_from_v_equi_in_t[i+1]
+            #     point_dir = np.angle(next_point - point)
+            #     drc = point_dir - last_dir
+            #     dist = distances[i]
+            #     self.delta.append(atan((2*wheelbase*sin(drc))/dist))
+            #     last_dir = (last_dir + 2*drc) % (2*pi)
+            # self.delta.append(0)
+        self.delta = np.zeros(len(self.path_from_v_equi_in_t))
         # plt.plot(self.delta, label='delta')
         # plt.legend()
         # plt.show()

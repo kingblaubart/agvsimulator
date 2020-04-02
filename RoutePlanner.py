@@ -80,14 +80,12 @@ class RoutePlanner:
         spawn_y = new_points[0].y
         if car.start_dir == "north":
             spawn_x = spawn_x + 0.25 * self.spacing[0]
+        elif car.start_dir == "east":
+            spawn_y = spawn_y - 0.25 * self.spacing[1]
+        elif car.start_dir == "south":
+            spawn_x = spawn_x - 0.25 * self.spacing[0]
         else:
-            if car.start_dir == "east":
-                spawn_y = spawn_y - 0.25 * self.spacing[1]
-            else:
-                if car.start_dir == "south":
-                    spawn_x = spawn_x - 0.25 * self.spacing[0]
-                else:
-                    spawn_y = spawn_y + 0.25 * self.spacing[1]
+            spawn_y = spawn_y + 0.25 * self.spacing[1]
         new_points[0] = Point(spawn_x, spawn_y)
         car.spawn = [spawn_x, spawn_y]
         car.set_first_position()
@@ -126,7 +124,7 @@ class RoutePlanner:
                 else:
                     entry = Point(end.x - self.spacing[0], end.y)
                     end_cross = Point(entry.x, entry.y + np.sign(start.y - end.y) * self.spacing[1])
-        # print("points", [start.x, start.y], [ext.x, ext.y], [start_cross.x, start_cross.y], [end_cross.x, end_cross.y], [entry.x, entry.y], [end.x, end.y])
+
         return [start, ext, start_cross, end_cross, entry, end]
 
     def make_curve(self, point, prev_point, next_point, car):
@@ -135,9 +133,6 @@ class RoutePlanner:
         prev_vec = point - prev_point
         next_point = np.array([next_point.x, next_point.y])
         next_vec = next_point - point
-
-        # start = point + np.sign(prev_point - point) * 0.25 * self.spacing
-        # end = point + np.sign(next_point - point) * 0.25 * self.spacing
 
         angle = np.sign(np.cross(prev_vec, next_vec))
         if angle == -1:
