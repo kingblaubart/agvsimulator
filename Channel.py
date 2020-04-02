@@ -25,4 +25,3 @@ class Channel:
 
     def get_last_config(self):
         return self.last_config
-
