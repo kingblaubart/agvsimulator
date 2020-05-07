@@ -5,20 +5,19 @@
       "size": [30, 20],
       "dt": 0.005,
       "dt_comment": "data sampling rate",
-      "ct": 0.05,
+      "ct": 0.005,
       "ts_comment": "controller sampling rate",
       "pt": 0.005,
       "pt_comment": "PathPlanner sampling rate",
-      "latency": 0.02,
-      "errorrate": 0.05,
-      "k_p": 3.5,
-      "k_d": 0.2,
-      "Layout": true,
-      "Path": false
+      "k_p": 2,
+      "k_d": 4.6,
+      "Layout": false,
+      "Path": true,
+      "holonom": false
     },
   "SpaceFree2D":
     {
-      "px_width": 800,
+      "px_width": 1500,
       "fps": 50
     },
    "Layout":
@@ -53,35 +52,26 @@
         "width": 0.5,
         "max_vel": 4,
         "max_acc": 2,
+        "max_steering_angle": 1.22,
         "color": "#FFAF00",
         "start": [0, 0],
-        "finish": [4, 3],
-        "max_latency": 0.02,
-        "min_latency": 0.02,
-        "errorrate": 0.05
-      },
-      {
-        "index": 1,
-        "spawn_x": 1.4,
-        "spawn_y": 5.5,
-        "start_direction": "east",
-        "end_direction": "south",
-        "start_time": 3,
-        "angle": 0,
-        "length": 1,
-        "width": 0.5,
-        "max_vel": 4,
-        "max_acc": 2,
-        "color": "#FFAF00",
-        "start": [4, 3],
-        "finish": [0, 3],
-        "max_latency": 0.02,
-        "min_latency": 0.02,
-        "errorrate": 0.05
+        "finish": [2, 3],
+        "max_latency": 0,
+        "min_latency": 0,
+        "errorrate": 0.2,
+        "loss_rate": 0,
+        "segment_length": 3,
+        "sara_scheme": [1, 2, 3, 4]
       }
+
     ],
   "Path":
           [
+            {
+              "car_id": 0,
+              "pos_x": 22.0,
+              "pos_y": 10.0
+            },
             {
               "car_id": 0,
               "pos_x": 10.0,
@@ -89,34 +79,17 @@
             },
             {
               "car_id": 0,
-              "pos_x": 25.0,
-              "pos_y": 10.0
-            },
-            {
-              "car_id": 0,
-              "pos_x": 23.2,
+              "pos_x": 13.2,
               "pos_y": 14.4
             },
             {
               "car_id": 0,
-              "pos_x": 15.0,
+              "pos_x": 24.0,
               "pos_y": 15.0
             }
           ],
   "Obstacles":
     [
-      {
-        "corners": [10, 15, 12, 15, 12, 17, 10, 17],
-        "color": "red"
-      },
-      {
-        "corners": [15, 15, 17, 15, 17, 17, 15, 17],
-        "color": "red"
-      },
-      {
-        "corners": [20, 15, 22, 15, 22, 17, 20, 17],
-        "color": "red"
-      }
     ],
   "CollisionControl":
   {

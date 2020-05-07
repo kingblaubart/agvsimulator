@@ -9,10 +9,10 @@ dt = None
 ct = None
 pt = None
 fps = None
-latency = None
 carList = []
 data = []
 vis_data = []
+debug_list = []
 collision = None
 coll_det_freq = None
 car_count = None
@@ -20,6 +20,8 @@ k_p = None
 k_d = None
 last_timestamp = None
 statespace = None
+holonom = None
+last_get_data = 0
 
 
 # some setter methods
@@ -58,11 +60,6 @@ def set_coll_det_freq(cdf):
     coll_det_freq = cdf
 
 
-def set_latency(l):
-    global latency
-    latency = l
-
-
 def set_carcount(c):
     global car_count
     car_count = c
@@ -83,9 +80,19 @@ def set_statespace(ss):
     statespace = ss
 
 
+def set_holonom(h):
+    global holonom
+    holonom = h
+
+
 # some methods used my multiple classes
 def angle(p1: Point, p2: Point):
     phi = m.atan2(p2.y - p1.y, p2.x - p1.x)
+    return phi
+
+
+def goodangle(p1, p2):
+    phi = m.atan2(p2.imag - p1.imag, p2.real - p1.real)
     return phi
 
 
@@ -94,3 +101,9 @@ def distance(p1: Point, p2: Point):
     y = p2.y - p1.y
     d = np.linalg.norm([x, y])
     return d
+
+
+def dist(a, b):
+    a = np.array(a)
+    b = np.array(b)
+    return np.linalg.norm(a-b)

@@ -4,110 +4,66 @@ import json
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
-import Lib as lib
-from Obstacles2D import Obstacles2D
-import pyglet
-
+import Config as cfg
+import multiprocessing
 
 def start_simulation():
-    parameters = json.load(open("OneCar.json"))
+    parameters = json.load(open("Ackermann.json"))
+    #parameters = cfg.parameters
     g = God(parameters)
     g.file_read()
     g.simulate()
-    s = SpaceFree2DOpenGL(g)
 
-    for data in lib.data:
-        time, obj, x, y, v, dir = data
-        # print(f"{float(time):< 6.4}    {obj:<10}     {float(x):< 6.4}     {float(y):< 10.3}      {float(dir): < 3.3}")
-
-    t = np.asarray(g.cars[0].planner.t_equi_in_t)
-
-    planner_pos_x = np.asarray(g.cars[0].planner.path_from_v_equi_in_t.real)
-
-    planner_vel_x = np.asarray(g.cars[0].planner.velocity_from_v_equi_in_t.real)
-
-    planner_acc_x = np.asarray(g.cars[0].planner.acceleration_from_v_equi_in_t.real)
-
-    planner_pos_y = np.asarray(g.cars[0].planner.path_from_v_equi_in_t.imag)
-
-    planner_vel_y = np.asarray(g.cars[0].planner.velocity_from_v_equi_in_t.imag)
-
-    planner_acc_y = np.asarray(g.cars[0].planner.acceleration_from_v_equi_in_t.imag)
-
-    sim_pos_x = np.asarray(g.cars[0].position_x)
-
-    sim_pos_y = np.asarray(g.cars[0].position_y)
-
-    acc_vel_x = []
-    for i in range(len(planner_vel_x)):
-        try:
-            acc_vel_x.append(planner_acc_x[i] * lib.pt/1000 + acc_vel_x[i-1])
-        except IndexError:
-            acc_vel_x.append(planner_acc_x[i] * lib.pt/1000)
-
-    acc_vel_y = []
-    for i in range(len(planner_vel_y)):
-        try:
-            acc_vel_y.append(planner_acc_y[i] * lib.pt / 1000 + acc_vel_y[i - 1])
-        except IndexError:
-            acc_vel_y.append(planner_acc_y[i] * lib.pt / 1000)
-
-    acc_pos_x = []
-    for i in range(len(planner_acc_x)):
-        try:
-            acc_pos_x.append(0.5 * planner_acc_x[i] * ((lib.pt / 1000) ** 2) + acc_vel_x[i] * (lib.pt/1000) + acc_pos_x[i - 1])
-        except IndexError:
-            acc_pos_x.append(0.5 * planner_acc_x[i] * ((lib.pt / 1000) ** 2) + acc_vel_x[i] * (lib.pt/1000) + g.cars[0].spawn[0])
-
-    acc_pos_y = []
-    for i in range(len(planner_acc_y)):
-        try:
-            acc_pos_y.append(0.5 * planner_acc_y[i] * ((lib.pt / 1000) ** 2) + acc_vel_y[i] * (lib.pt/1000) + acc_pos_y[i - 1])
-        except IndexError:
-            acc_pos_y.append(0.5 * planner_acc_x[i] * ((lib.pt / 1000) ** 2) + acc_vel_y[i] * (lib.pt / 1000) + g.cars[0].spawn[1])
-
-    # plt.show()
-    #
-    # plt.plot(acc_pos_x - planner_pos_x, label='diff x int')
-    # plt.plot(acc_pos_y - planner_pos_y, label='diff y int')
-    # plt.plot(sim_pos_x - planner_pos_x, label='diff x sim')
-    # plt.plot(sim_pos_y - planner_pos_y, label='diff y sim')
-    # plt.legend()
-    # plt.show()
-    #plt.plot(acc_pos_x, acc_pos_y, label='integrated')
-    #plt.plot(planner_pos_x, planner_pos_y, label='planner')
-    plt.plot(sim_pos_x, sim_pos_y, '.', label='simulated')
-
-    #plt.show()
-
-    path_x = []
-    path_y = []
-
-    car = g.cars[0]
-
-    for data in car.planner.acceleration_from_v_equi_in_t:
-        x, y = car.test_dc_motor(data.real, data.imag)
-        path_x.append(x+car.spawn[0])
-        path_y.append(y+car.spawn[1])
-
-    plt.plot(path_x, path_y, label='DC')
+    # for data in lib.data:
+    #     time, obj, x, y, v, dir = data
+    #     # print(f"{float(time):< 6.4}    {obj:<10}     {float(x):< 6.4}     {float(y):< 10.3}      {float(dir): < 3.3}")
+    p1 = multiprocessing.Process(target=plots, args=(g,))
+    p1.start()
+    if parameters["animation"]:
+        s = SpaceFree2DOpenGL(g)
+        s.create_space()
 
 
-    px = []
-    py = []
-    i = 0
-    for p_x, p_y in zip(path_x, path_y):
-        if i == 30:
-            px.append(p_x)
-            py.append(p_y)
-            i = 0
-        i += 1
+def plots(g):
+    #t = g.cars[0].planner.t_equi_in_t
+    plt.style.use('seaborn')
 
-    #plt.plot(px, py, 'x', label='DC')
-    plt.title('Path')
-    plt.legend()
+    fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(nrows=5, ncols=1)
+
+    for car in g.cars:
+        if not car.ghost:
+            ax1.plot(car.lat_distances)
+    ax1.set_title('Lateral Distance')
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('Meter')
+    for car in g.cars:
+        if not car.ghost:
+            ax2.plot(car.distances)
+    ax2.set_title('Distance')
+    ax2.set_xlabel('Time')
+    ax2.set_ylabel('Meter')
+    for car in g.cars:
+        if not car.ghost:
+            ax3.plot(car.controller.vel)
+    ax3.set_title('Vel_c')
+    ax3.set_xlabel('Time')
+    ax3.set_ylabel('m/s')
+    plt.tight_layout()
+
+    for car in g.cars:
+        if not car.ghost:
+            ax4.plot(car.planner.a_from_v_equi_in_t)
+    ax4.set_title('Planned Acceleration')
+    ax4.set_xlabel('Time')
+    ax4.set_ylabel('m/s^2')
+    for car in g.cars:
+        if not car.ghost:
+            ax5.plot(car.controller.acc)
+    ax5.set_title('Controller Output')
+    ax5.set_xlabel('Time')
+    ax5.set_ylabel('m/s^2')
     plt.show()
-    s.create_space()
+
 
 
 if __name__ == "__main__":

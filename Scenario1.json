@@ -1,12 +1,33 @@
 {
+  "animation": true,
   "God":
     {
       "size": [105 , 105],
-      "dt": 1,
-      "dt_comment" : "data sampling rate",
-      "ts": 1,
-      "ts_comment" : "controller sampling rate"
+      "dt": 0.005,
+      "dt_comment": "data sampling rate",
+      "ct": 0.005,
+      "ts_comment": "controller sampling rate",
+      "pt": 0.005,
+      "pt_comment": "PathPlanner sampling rate",
+      "k_p": 2,
+      "k_d": 4.6,
+      "Layout": false,
+      "Path": true,
+      "holonom": false
     },
+    "DC-Motor":
+  {
+    "Jm": 0.03,
+    "Bm": 0.1,
+    "Kme": 0.01,
+    "Kmt": 0.01,
+    "Rm": 1,
+    "Lm": 0.5,
+    "Kdm": 20,
+    "Kpm": 170,
+    "Kim": 330,
+    "Nm": 83
+  },
   "SpaceFree2D":
     {
       "px_width": 800,
@@ -19,11 +40,19 @@
         "spawn_x": 5.0,
         "spawn_y": 92.5,
         "angle": 0,
+        "start_time": 0,
         "length": 3.0,
         "width": 2.0,
-        "max_vel": 40,
-        "max_acc": 80,
-        "color": "#FFAF00"
+        "max_vel": 4,
+        "max_acc": 2,
+        "max_steering_angle": 1.22,
+        "color": "#FFAF00",
+        "start": [0, 0],
+        "finish": [2, 3],
+        "max_latency": 0,
+        "min_latency": 0,
+        "errorrate": 0,
+        "segment_length": 3
       }
     ],
   "Path":
@@ -501,7 +530,7 @@
   },
   "CollisionControl":
   {
-    "activated": true,
+    "activated": false,
     "obstacle_spacing": 0.1,
     "car_spacing": 0.5,
     "polling_dif": 0.001,
